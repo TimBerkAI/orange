@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
 import { Modal } from "@/shared/ui/Modal";
+import { RichTextEditor } from "@/shared/ui/RichTextEditor";
 import { colors, spacing, typography, radius } from "@/shared/config/theme";
 import { listDoctors } from "@/domains/doctors/api";
 import type { Doctor } from "@/domains/doctors/types";
@@ -116,12 +117,26 @@ export function AppointmentFormModal({
           placeholder="Иванов Иван Иванович"
           required
         />
-        <Input
-          label="Причина обращения"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          placeholder="Осмотр, лечение и т.д."
-        />
+        <div>
+          <label
+            style={{
+              display: "block",
+              fontSize: typography.caption.fontSize,
+              fontWeight: "500",
+              color: colors.textSecondary,
+              marginBottom: "4px",
+            }}
+          >
+            Причина обращения
+          </label>
+          <RichTextEditor
+            value={reason}
+            onChange={setReason}
+            placeholder="Осмотр, лечение и т.д."
+            minHeight={50}
+            maxHeight={120}
+          />
+        </div>
 
         <div>
           <label

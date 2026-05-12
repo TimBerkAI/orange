@@ -23,8 +23,17 @@ export interface Doctor {
   updated_at?: string;
 }
 
+export interface NewUserPayload {
+  email: string;
+  first_name: string;
+  last_name: string;
+  patronymic?: string;
+  phone?: string;
+}
+
 export interface DoctorCreatePayload {
-  user_id: number;
+  user_id?: number;
+  new_user?: NewUserPayload;
   specialization_ids?: number[];
   notes?: string;
   preferred_weekdays?: number[];

@@ -93,13 +93,36 @@ class PatientDetailSerializer(serializers.ModelSerializer):
         }
 
 
+class NewPatientUserSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150)
+    patronymic = serializers.CharField(max_length=150, required=False, default='')
+    phone = serializers.CharField(max_length=30, required=False, default='')
+    date_of_birth = serializers.DateField(required=False, default=None)
+
+
 class PatientCreateSerializer(serializers.Serializer):
-    user_id = serializers.IntegerField()
+    user_id = serializers.IntegerField(required=False)
+    new_user = NewPatientUserSerializer(required=False)
     allergies = serializers.CharField(required=False, default='', allow_blank=True)
     status = serializers.ChoiceField(
         choices=PatientStatus.choices(),
         default=PatientStatus.ACTIVE,
     )
+
+    def validate(self, attrs):
+        has_user_id = 'user_id' in attrs and attrs['user_id'] is not None
+        has_new_user = 'new_user' in attrs and attrs['new_user'] is not None
+        if not has_user_id and not has_new_user:
+            raise serializers.ValidationError(
+                'Either user_id or new_user must be provided.'
+            )
+        if has_user_id and has_new_user:
+            raise serializers.ValidationError(
+                'Provide either user_id or new_user, not both.'
+            )
+        return attrs
 
 
 class PatientUpdateSerializer(serializers.Serializer):

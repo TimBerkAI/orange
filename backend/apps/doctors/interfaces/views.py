@@ -1,7 +1,9 @@
+from django.db import transaction
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.authorization.application.services import AuthService
 from apps.authorization.domain.roles import Role
 from apps.authorization.infrastructure.models import User
 from apps.authorization.interfaces.permissions import IsAdmin, IsAdminOrDoctor
@@ -59,6 +61,7 @@ class DoctorListCreateView(APIView):
         doctors = service.list_doctors(search=search)
         return Response(DoctorListSerializer(doctors, many=True).data)
 
+    @transaction.atomic
     def post(self, request):
         if request.user.role != Role.ADMIN:
             return Response(
@@ -70,12 +73,31 @@ class DoctorListCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        user = User.objects.filter(pk=data['user_id']).first()
-        if not user:
-            return Response(
-                {'detail': 'User not found.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        new_user_data = data.get('new_user')
+        if new_user_data:
+            auth_svc = AuthService()
+            try:
+                user = auth_svc.register_user(
+                    email=new_user_data['email'],
+                    password=None,
+                    role=Role.DOCTOR,
+                    profile_data={
+                        'first_name': new_user_data['first_name'],
+                        'last_name': new_user_data['last_name'],
+                        'patronymic': new_user_data.get('patronymic', ''),
+                        'phone': new_user_data.get('phone', ''),
+                        'date_of_birth': None,
+                    },
+                )
+            except ValueError as e:
+                return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            user = User.objects.filter(pk=data['user_id']).first()
+            if not user:
+                return Response(
+                    {'detail': 'User not found.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         service = DoctorService()
         try:

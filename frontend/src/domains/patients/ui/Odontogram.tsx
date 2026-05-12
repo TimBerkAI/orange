@@ -5,6 +5,7 @@ import {
   TOOTH_STATUS_COLORS,
   TOOTH_STATUS_LABELS,
 } from "../constants";
+import { ToothIcon } from "./ToothIcon";
 import type { OdontogramEntry, ToothStatusValue } from "../types";
 
 interface OdontogramProps {
@@ -53,10 +54,9 @@ export function Odontogram({ entries, onUpdateEntry, readonly = false }: Odontog
     [popover, onUpdateEntry, entryMap],
   );
 
-  const renderTooth = (number: number) => {
+  const renderTooth = (number: number, isLower: boolean) => {
     const entry = entryMap.get(number);
     const status: ToothStatusValue = (entry?.status as ToothStatusValue) ?? "healthy";
-    const isExtracted = status === "extracted";
     const isActive = popover?.toothId === number;
 
     return (
@@ -67,46 +67,25 @@ export function Odontogram({ entries, onUpdateEntry, readonly = false }: Odontog
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "2px",
+          gap: "1px",
           cursor: readonly ? "default" : "pointer",
           transition: "transform 0.1s ease",
           transform: isActive ? "scale(1.1)" : "scale(1)",
         }}
       >
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: "6px",
-            border: `2px solid ${isActive ? colors.primary : TOOTH_STATUS_BORDER[status]}`,
-            backgroundColor: TOOTH_STATUS_COLORS[status],
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "10px",
-            fontWeight: "600",
-            color: isExtracted ? colors.textMuted : colors.textPrimary,
-            position: "relative",
-            boxShadow: isActive ? `0 0 0 2px ${colors.primaryLight}` : "none",
-          }}
-        >
-          {isExtracted && (
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 18 18"
-              style={{ position: "absolute" }}
-            >
-              <line x1="3" y1="3" x2="15" y2="15" stroke={colors.textMuted} strokeWidth="1.5" />
-              <line x1="15" y1="3" x2="3" y2="15" stroke={colors.textMuted} strokeWidth="1.5" />
-            </svg>
-          )}
-        </div>
+        <ToothIcon
+          toothNumber={number}
+          status={status}
+          isActive={isActive}
+          isLower={isLower}
+          size={34}
+        />
         <span
           style={{
             fontSize: "10px",
             color: colors.textSecondary,
             fontWeight: "500",
+            lineHeight: 1,
           }}
         >
           {number}
@@ -115,21 +94,21 @@ export function Odontogram({ entries, onUpdateEntry, readonly = false }: Odontog
     );
   };
 
-  const renderRow = (teeth: number[], label: string) => (
-    <div style={{ display: "flex", gap: "3px", alignItems: "flex-start" }}>
+  const renderRow = (teeth: number[], label: string, isLower: boolean) => (
+    <div style={{ display: "flex", gap: "2px", alignItems: "flex-end" }}>
       <span
         style={{
           fontSize: "10px",
           color: colors.textMuted,
-          width: 16,
+          width: 14,
           textAlign: "center",
-          marginTop: "8px",
           flexShrink: 0,
+          lineHeight: "34px",
         }}
       >
         {label}
       </span>
-      {teeth.map(renderTooth)}
+      {teeth.map((n) => renderTooth(n, isLower))}
     </div>
   );
 
@@ -142,17 +121,18 @@ export function Odontogram({ entries, onUpdateEntry, readonly = false }: Odontog
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: spacing.md,
+          gap: spacing.sm,
           padding: spacing.md,
           backgroundColor: colors.surface,
           borderRadius: radius.lg,
           border: `1px solid ${colors.borderLight}`,
+          overflowX: "auto",
         }}
       >
-        <div style={{ display: "flex", gap: spacing.lg, justifyContent: "center" }}>
-          {renderRow(UPPER_RIGHT, "R")}
-          <div style={{ width: 1, backgroundColor: colors.border }} />
-          {renderRow(UPPER_LEFT, "L")}
+        <div style={{ display: "flex", gap: spacing.md, justifyContent: "center" }}>
+          {renderRow(UPPER_RIGHT, "R", false)}
+          <div style={{ width: 1, backgroundColor: colors.border, alignSelf: "stretch" }} />
+          {renderRow(UPPER_LEFT, "L", false)}
         </div>
 
         <div
@@ -163,10 +143,10 @@ export function Odontogram({ entries, onUpdateEntry, readonly = false }: Odontog
           }}
         />
 
-        <div style={{ display: "flex", gap: spacing.lg, justifyContent: "center" }}>
-          {renderRow(LOWER_RIGHT, "R")}
-          <div style={{ width: 1, backgroundColor: colors.border }} />
-          {renderRow(LOWER_LEFT, "L")}
+        <div style={{ display: "flex", gap: spacing.md, justifyContent: "center" }}>
+          {renderRow(LOWER_RIGHT, "R", true)}
+          <div style={{ width: 1, backgroundColor: colors.border, alignSelf: "stretch" }} />
+          {renderRow(LOWER_LEFT, "L", true)}
         </div>
       </div>
 

@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useAuth } from "@/domains/authorization/application/AuthContext";
+import { Button } from "@/shared/ui/Button";
 import { Spinner } from "@/shared/ui/Spinner";
+import { RichTextEditor } from "@/shared/ui/RichTextEditor";
+import { useIsMobile } from "@/shared/hooks/useMediaQuery";
 import { colors, radius, shadows, spacing, typography } from "@/shared/config/theme";
 import {
+  deleteVisit,
   getOdontogram,
   getPatient,
   getSoapNote,
@@ -61,6 +66,8 @@ function StatusBadge({ status }: { status: string }) {
 export function PatientCardPage() {
   const { id } = useParams<{ id: string }>();
   const patientId = Number(id);
+  const { role } = useAuth();
+  const isAdmin = role === "admin";
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [visits, setVisits] = useState<Visit[]>([]);
@@ -123,6 +130,19 @@ export function PatientCardPage() {
     [],
   );
 
+  const handleVisitDelete = useCallback(
+    async (visitId: number) => {
+      await deleteVisit(visitId);
+      setVisits((prev) => prev.filter((v) => v.id !== visitId));
+      if (selectedVisitId === visitId) {
+        setSelectedVisitId(null);
+        setOdontogram(null);
+        setSoap(null);
+      }
+    },
+    [selectedVisitId],
+  );
+
   if (loading) {
     return (
       <div style={{ display: "flex", justifyContent: "center", padding: spacing.xxl }}>
@@ -140,15 +160,16 @@ export function PatientCardPage() {
   }
 
   const selectedVisit = visits.find((v) => v.id === selectedVisitId) ?? null;
+  const isMobile = useIsMobile();
 
   return (
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "280px 1fr 320px",
+        gridTemplateColumns: isMobile ? "1fr" : "280px 1fr 320px",
         gap: spacing.md,
-        height: "calc(100vh - 96px)",
-        overflow: "hidden",
+        height: isMobile ? "auto" : "calc(100vh - 96px)",
+        overflow: isMobile ? "visible" : "hidden",
       }}
     >
       <LeftPanel
@@ -156,6 +177,7 @@ export function PatientCardPage() {
         visits={visits}
         selectedVisitId={selectedVisitId}
         onSelectVisit={selectVisit}
+        isMobile={isMobile}
       />
 
       <CenterPanel
@@ -170,6 +192,8 @@ export function PatientCardPage() {
       <RightPanel
         visit={selectedVisit}
         onUpdate={handleVisitUpdate}
+        isAdmin={isAdmin}
+        onDelete={handleVisitDelete}
       />
     </div>
   );
@@ -180,11 +204,13 @@ function LeftPanel({
   visits,
   selectedVisitId,
   onSelectVisit,
+  isMobile,
 }: {
   patient: Patient;
   visits: Visit[];
   selectedVisitId: number | null;
   onSelectVisit: (id: number) => void;
+  isMobile: boolean;
 }) {
   return (
     <div
@@ -193,7 +219,8 @@ function LeftPanel({
         flexDirection: "column",
         gap: spacing.md,
         overflowY: "auto",
-        height: "100%",
+        height: isMobile ? "auto" : "100%",
+        maxHeight: isMobile ? "none" : "100%",
       }}
     >
       <div
@@ -434,20 +461,27 @@ function CenterPanel({
 function RightPanel({
   visit,
   onUpdate,
+  isAdmin,
+  onDelete,
 }: {
   visit: Visit | null;
   onUpdate: (visitId: number, data: Record<string, unknown>) => Promise<void>;
+  isAdmin: boolean;
+  onDelete: (visitId: number) => Promise<void>;
 }) {
   const [editing, setEditing] = useState(false);
   const [reason, setReason] = useState("");
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (visit) {
       setReason(visit.reason);
       setStatus(visit.status);
       setEditing(false);
+      setConfirmDelete(false);
     }
   }, [visit]);
 
@@ -542,22 +576,12 @@ function RightPanel({
               >
                 Причина обращения
               </label>
-              <textarea
+              <RichTextEditor
                 value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                rows={3}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: radius.md,
-                  border: `1px solid ${colors.border}`,
-                  fontSize: typography.body.fontSize,
-                  color: colors.textPrimary,
-                  fontFamily: "inherit",
-                  resize: "vertical",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
+                onChange={setReason}
+                placeholder="Причина визита"
+                minHeight={60}
+                maxHeight={150}
               />
             </div>
             <div>
@@ -632,7 +656,19 @@ function RightPanel({
           </>
         ) : (
           <>
-            <InfoRow label="Причина" value={visit.reason || "—"} />
+            <div>
+              <span style={{ ...typography.caption, color: colors.textSecondary, display: "block", marginBottom: "2px" }}>
+                Причина
+              </span>
+              {visit.reason ? (
+                <div
+                  style={{ ...typography.caption, fontWeight: "500", color: colors.textPrimary }}
+                  dangerouslySetInnerHTML={{ __html: visit.reason }}
+                />
+              ) : (
+                <span style={{ ...typography.caption, fontWeight: "500", color: colors.textPrimary }}>—</span>
+              )}
+            </div>
             <div>
               <span style={{ ...typography.caption, color: colors.textSecondary, display: "block", marginBottom: "2px" }}>
                 Статус
@@ -671,6 +707,42 @@ function RightPanel({
                 </span>
               ))}
             </div>
+          </div>
+        )}
+
+        {isAdmin && !editing && (
+          <div
+            style={{
+              borderTop: `1px solid ${colors.borderLight}`,
+              paddingTop: spacing.md,
+              display: "flex",
+              justifyContent: "flex-end",
+            }}
+          >
+            {confirmDelete ? (
+              <div style={{ display: "flex", gap: spacing.sm, alignItems: "center" }}>
+                <span style={{ ...typography.caption, color: colors.danger }}>Удалить визит?</span>
+                <Button variant="secondary" onClick={() => setConfirmDelete(false)} style={{ padding: "4px 10px" }}>
+                  Нет
+                </Button>
+                <Button
+                  variant="danger"
+                  loading={deleting}
+                  onClick={async () => {
+                    setDeleting(true);
+                    try { await onDelete(visit.id); } catch { /* ignore */ }
+                    setDeleting(false);
+                  }}
+                  style={{ padding: "4px 10px" }}
+                >
+                  Да, удалить
+                </Button>
+              </div>
+            ) : (
+              <Button variant="danger" onClick={() => setConfirmDelete(true)} style={{ padding: "4px 10px" }}>
+                Удалить визит
+              </Button>
+            )}
           </div>
         )}
       </div>

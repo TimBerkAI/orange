@@ -13,6 +13,8 @@ export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
     alignItems: "flex-start",
     justifyContent: "space-between",
     marginBottom: spacing.lg,
+    flexWrap: "wrap",
+    gap: spacing.sm,
   };
 
   const titleStyle: CSSProperties = {
@@ -29,11 +31,11 @@ export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
 
   return (
     <div style={containerStyle}>
-      <div>
+      <div style={{ minWidth: 0 }}>
         <h1 style={titleStyle}>{title}</h1>
         {subtitle && <p style={subtitleStyle}>{subtitle}</p>}
       </div>
-      {actions && <div>{actions}</div>}
+      {actions && <div style={{ flexShrink: 0 }}>{actions}</div>}
     </div>
   );
 }

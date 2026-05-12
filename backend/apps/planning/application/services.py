@@ -7,6 +7,7 @@ from apps.patients.application.services import PatientService, VisitService
 from apps.patients.infrastructure.repositories import PatientRepository
 from apps.planning.domain.validators import validate_appointment_times
 from apps.planning.infrastructure.repositories import AppointmentRepository
+from shared.domain.sanitize import sanitize_html
 
 
 class AppointmentService:
@@ -29,6 +30,7 @@ class AppointmentService:
         created_by,
     ):
         validate_appointment_times(start_at, end_at)
+        reason = sanitize_html(reason) if reason else ''
 
         doctor = Doctor.objects.filter(pk=doctor_id).first()
         if not doctor:
@@ -139,6 +141,7 @@ class AppointmentService:
             visit_fields['doctor'] = doctor
 
         if reason is not None:
+            reason = sanitize_html(reason)
             visit_fields['reason'] = reason
             appt_fields['reason'] = reason
 

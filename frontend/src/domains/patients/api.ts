@@ -15,7 +15,15 @@ export function getPatient(id: number): Promise<Patient> {
 }
 
 export function createPatient(data: {
-  user_id: number;
+  user_id?: number;
+  new_user?: {
+    email: string;
+    first_name: string;
+    last_name: string;
+    patronymic?: string;
+    phone?: string;
+    date_of_birth?: string | null;
+  };
   allergies?: string;
   status?: string;
 }): Promise<Patient> {
@@ -56,6 +64,10 @@ export function createVisit(
 
 export function getVisit(visitId: number): Promise<Visit> {
   return apiFetch(`/patients/visits/${visitId}/`);
+}
+
+export function deleteVisit(visitId: number): Promise<void> {
+  return apiFetch(`/patients/visits/${visitId}/`, { method: "DELETE" });
 }
 
 export function updateVisit(

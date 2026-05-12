@@ -123,10 +123,10 @@ export function PatientsPage() {
           borderRadius: radius.lg,
           border: `1px solid ${colors.border}`,
           boxShadow: shadows.sm,
-          overflow: "hidden",
+          overflowX: "auto",
         }}
       >
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
           <thead>
             <tr style={{ backgroundColor: colors.borderLight }}>
               <Th>ФИО</Th>
@@ -228,14 +228,27 @@ function CreatePatientModal({
   onClose: () => void;
   onCreated: (p: Patient) => void;
 }) {
+  type UserMode = "new" | "existing";
+  const [userMode, setUserMode] = useState<UserMode>("new");
   const [userId, setUserId] = useState("");
+  const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [patronymic, setPatronymic] = useState("");
+  const [phone, setPhone] = useState("");
   const [allergies, setAllergies] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (open) {
+      setUserMode("new");
       setUserId("");
+      setEmail("");
+      setFirstName("");
+      setLastName("");
+      setPatronymic("");
+      setPhone("");
       setAllergies("");
       setError("");
     }
@@ -246,10 +259,19 @@ function CreatePatientModal({
     setSaving(true);
     setError("");
     try {
-      const patient = await createPatient({
-        user_id: Number(userId),
-        allergies,
-      });
+      const payload: Parameters<typeof createPatient>[0] = { allergies };
+      if (userMode === "existing") {
+        payload.user_id = Number(userId);
+      } else {
+        payload.new_user = {
+          email,
+          first_name: firstName,
+          last_name: lastName,
+          patronymic: patronymic || undefined,
+          phone: phone || undefined,
+        };
+      }
+      const patient = await createPatient(payload);
       onCreated(patient);
     } catch (err: unknown) {
       const detail = (err as Record<string, unknown>)?.detail;
@@ -259,20 +281,103 @@ function CreatePatientModal({
     }
   };
 
+  const tabStyle = (active: boolean) => ({
+    padding: "6px 14px",
+    border: `1px solid ${active ? colors.primary : colors.border}`,
+    borderRadius: radius.md,
+    backgroundColor: active ? colors.primaryLight : colors.surface,
+    color: active ? colors.primaryDark : colors.textSecondary,
+    fontSize: typography.caption.fontSize,
+    fontWeight: "500" as const,
+    cursor: "pointer" as const,
+    transition: "all 0.15s ease",
+  });
+
   return (
-    <Modal open={open} onClose={onClose} title="Добавить пациента" width={440}>
+    <Modal open={open} onClose={onClose} title="Добавить пациента" width={480}>
       <form
         onSubmit={(e) => void handleSubmit(e)}
         style={{ display: "flex", flexDirection: "column", gap: spacing.md }}
       >
-        <Input
-          label="ID пользователя"
-          type="number"
-          value={userId}
-          onChange={(e) => setUserId(e.target.value)}
-          placeholder="Введите ID пользователя"
-          required
-        />
+        <div>
+          <div
+            style={{
+              fontSize: typography.caption.fontSize,
+              fontWeight: "500",
+              color: colors.textSecondary,
+              marginBottom: spacing.sm,
+            }}
+          >
+            Пользователь
+          </div>
+          <div style={{ display: "flex", gap: spacing.xs, marginBottom: spacing.sm }}>
+            <button type="button" onClick={() => setUserMode("new")} style={tabStyle(userMode === "new")}>
+              Создать нового
+            </button>
+            <button type="button" onClick={() => setUserMode("existing")} style={tabStyle(userMode === "existing")}>
+              По ID пользователя
+            </button>
+          </div>
+          {userMode === "existing" ? (
+            <Input
+              label="ID пользователя"
+              type="number"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+              placeholder="Введите ID"
+              required
+            />
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
+              <Input
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="patient@email.ru"
+                required
+              />
+              <div style={{ display: "flex", gap: spacing.sm }}>
+                <div style={{ flex: 1 }}>
+                  <Input
+                    label="Фамилия"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Иванов"
+                    required
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Input
+                    label="Имя"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="Иван"
+                    required
+                  />
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: spacing.sm }}>
+                <div style={{ flex: 1 }}>
+                  <Input
+                    label="Отчество"
+                    value={patronymic}
+                    onChange={(e) => setPatronymic(e.target.value)}
+                    placeholder="Иванович"
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Input
+                    label="Телефон"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+7 (900) 123-45-67"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
         <Input
           label="Аллергии"
           value={allergies}

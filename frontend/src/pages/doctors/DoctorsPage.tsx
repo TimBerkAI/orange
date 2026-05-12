@@ -31,7 +31,7 @@ import {
 import { DoctorFormModal } from "@/domains/doctors/ui/DoctorFormModal";
 import { DoctorSelfCard } from "@/domains/doctors/ui/DoctorSelfCard";
 import { WEEKDAY_LABELS } from "@/domains/doctors/weekdays";
-import type { Doctor, Specialization } from "@/domains/doctors/types";
+import type { Doctor, DoctorCreatePayload, Specialization } from "@/domains/doctors/types";
 import type { ReactNode } from "react";
 
 type SortDir = "asc" | "desc";
@@ -193,17 +193,12 @@ function AdminDoctorsView() {
     setModalOpen(true);
   };
 
-  const handleSave = async (data: {
-    user_id?: number;
-    specialization_ids: number[];
-    notes: string;
-    preferred_weekdays: number[];
-  }) => {
+  const handleSave = async (data: DoctorCreatePayload) => {
     if (editDoctor) {
       const updated = await updateDoctor(editDoctor.id, data);
       setDoctors((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
     } else {
-      const created = await createDoctor({ ...data, user_id: data.user_id! });
+      const created = await createDoctor(data);
       setDoctors((prev) => [...prev, created]);
     }
   };
@@ -250,10 +245,10 @@ function AdminDoctorsView() {
           borderRadius: radius.lg,
           border: `1px solid ${colors.border}`,
           boxShadow: shadows.sm,
-          overflow: "hidden",
+          overflowX: "auto",
         }}
       >
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 700 }}>
           <thead>
             <tr style={{ backgroundColor: colors.borderLight }}>
               <Th>

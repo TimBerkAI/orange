@@ -90,7 +90,7 @@ class VisitService:
             doctor=doctor,
             start_at=start_at,
             end_at=end_at,
-            reason=reason,
+            reason=sanitize_html(reason) if reason else '',
             status=status,
         )
 
@@ -146,6 +146,9 @@ class VisitService:
         visit = self.visit_repo.get_by_id(visit_id)
         if not visit:
             raise ValueError('Visit not found')
+
+        if 'reason' in fields and fields['reason']:
+            fields['reason'] = sanitize_html(fields['reason'])
 
         tooth_ids = fields.pop('tooth_ids', None)
         if fields:

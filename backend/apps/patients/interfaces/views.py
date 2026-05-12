@@ -1,7 +1,9 @@
+from django.db import transaction
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.authorization.application.services import AuthService
 from apps.authorization.domain.roles import Role
 from apps.authorization.infrastructure.models import User
 from apps.authorization.interfaces.permissions import IsAdminOrDoctor
@@ -54,6 +56,7 @@ class PatientListCreateView(APIView):
         )
         return Response(PatientListSerializer(patients, many=True).data)
 
+    @transaction.atomic
     def post(self, request):
         if request.user.role != Role.ADMIN:
             return Response(
@@ -65,12 +68,31 @@ class PatientListCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        user = User.objects.filter(pk=data['user_id']).first()
-        if not user:
-            return Response(
-                {'detail': 'User not found.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        new_user_data = data.get('new_user')
+        if new_user_data:
+            auth_svc = AuthService()
+            try:
+                user = auth_svc.register_user(
+                    email=new_user_data['email'],
+                    password=None,
+                    role=Role.PATIENT,
+                    profile_data={
+                        'first_name': new_user_data['first_name'],
+                        'last_name': new_user_data['last_name'],
+                        'patronymic': new_user_data.get('patronymic', ''),
+                        'phone': new_user_data.get('phone', ''),
+                        'date_of_birth': new_user_data.get('date_of_birth'),
+                    },
+                )
+            except ValueError as e:
+                return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            user = User.objects.filter(pk=data['user_id']).first()
+            if not user:
+                return Response(
+                    {'detail': 'User not found.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         service = PatientService()
         try:
@@ -269,6 +291,21 @@ class VisitDetailView(APIView):
 
         return Response(VisitDetailSerializer(visit).data)
 
+    def delete(self, request, visit_id):
+        if request.user.role != Role.ADMIN:
+            return Response(
+                {'detail': 'Only administrators can delete visits.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        service = VisitService()
+        visit = service.get_visit(visit_id)
+        if not visit:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        visit.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     def _can_access(self, user, visit):
         if user.role == Role.ADMIN:
             return True
@@ -279,6 +316,12 @@ class OdontogramView(APIView):
     permission_classes = [IsAdminOrDoctor]
 
     def get(self, request, visit_id):
+        visit = VisitService().get_visit(visit_id)
+        if not visit:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        if not self._can_access(request.user, visit):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         service = OdontogramService()
         odontogram = service.get_odontogram(visit_id)
         if not odontogram:
@@ -286,6 +329,12 @@ class OdontogramView(APIView):
         return Response(OdontogramSerializer(odontogram).data)
 
     def patch(self, request, visit_id):
+        visit = VisitService().get_visit(visit_id)
+        if not visit:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        if not self._can_access(request.user, visit):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         serializer = OdontogramEntryUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -305,11 +354,22 @@ class OdontogramView(APIView):
         odontogram = service.get_odontogram(visit_id)
         return Response(OdontogramSerializer(odontogram).data)
 
+    def _can_access(self, user, visit):
+        if user.role == Role.ADMIN:
+            return True
+        return visit.doctor.user_id == user.id
+
 
 class SoapNoteView(APIView):
     permission_classes = [IsAdminOrDoctor]
 
     def get(self, request, visit_id):
+        visit = VisitService().get_visit(visit_id)
+        if not visit:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        if not self._can_access(request.user, visit):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         service = SoapNoteService()
         soap = service.get_soap(visit_id)
         if not soap:
@@ -317,6 +377,12 @@ class SoapNoteView(APIView):
         return Response(SoapNoteSerializer(soap).data)
 
     def patch(self, request, visit_id):
+        visit = VisitService().get_visit(visit_id)
+        if not visit:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        if not self._can_access(request.user, visit):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         serializer = SoapNoteSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
@@ -339,3 +405,8 @@ class SoapNoteView(APIView):
             )
 
         return Response(SoapNoteSerializer(soap).data)
+
+    def _can_access(self, user, visit):
+        if user.role == Role.ADMIN:
+            return True
+        return visit.doctor.user_id == user.id

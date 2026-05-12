@@ -2,23 +2,21 @@ import { type FormEvent, useEffect, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
 import { Modal } from "@/shared/ui/Modal";
-import { colors, spacing, typography } from "@/shared/config/theme";
+import { RichTextEditor } from "@/shared/ui/RichTextEditor";
+import { colors, radius, spacing, typography } from "@/shared/config/theme";
 import { ALL_WEEKDAYS, WEEKDAY_LABELS } from "../weekdays";
-import type { Doctor, Specialization } from "../types";
+import type { Doctor, DoctorCreatePayload, NewUserPayload, Specialization } from "../types";
 
 interface DoctorFormModalProps {
   open: boolean;
   onClose: () => void;
-  onSave: (data: {
-    user_id?: number;
-    specialization_ids: number[];
-    notes: string;
-    preferred_weekdays: number[];
-  }) => Promise<void>;
+  onSave: (data: DoctorCreatePayload) => Promise<void>;
   onDelete?: () => Promise<void>;
   doctor?: Doctor | null;
   specializations: Specialization[];
 }
+
+type UserMode = "existing" | "new";
 
 export function DoctorFormModal({
   open,
@@ -30,7 +28,13 @@ export function DoctorFormModal({
 }: DoctorFormModalProps) {
   const isEdit = !!doctor;
 
+  const [userMode, setUserMode] = useState<UserMode>("new");
   const [userId, setUserId] = useState("");
+  const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [patronymic, setPatronymic] = useState("");
+  const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedWeekdays, setSelectedWeekdays] = useState<number[]>(ALL_WEEKDAYS);
   const [selectedSpecs, setSelectedSpecs] = useState<number[]>([]);
@@ -41,7 +45,13 @@ export function DoctorFormModal({
 
   useEffect(() => {
     if (open) {
+      setUserMode("new");
       setUserId(doctor ? String(doctor.user.id) : "");
+      setEmail("");
+      setFirstName("");
+      setLastName("");
+      setPatronymic("");
+      setPhone("");
       setNotes(doctor?.notes ?? "");
       setSelectedWeekdays(doctor?.preferred_weekdays ?? ALL_WEEKDAYS);
       setSelectedSpecs(doctor?.specializations.map((s) => s.id) ?? []);
@@ -67,12 +77,26 @@ export function DoctorFormModal({
     setError("");
     setSaving(true);
     try {
-      await onSave({
-        ...(!isEdit ? { user_id: Number(userId) } : {}),
+      const payload: DoctorCreatePayload = {
         specialization_ids: selectedSpecs,
         notes,
         preferred_weekdays: selectedWeekdays,
-      });
+      };
+      if (!isEdit) {
+        if (userMode === "existing") {
+          payload.user_id = Number(userId);
+        } else {
+          const newUser: NewUserPayload = {
+            email,
+            first_name: firstName,
+            last_name: lastName,
+          };
+          if (patronymic) newUser.patronymic = patronymic;
+          if (phone) newUser.phone = phone;
+          payload.new_user = newUser;
+        }
+      }
+      await onSave(payload);
       onClose();
     } catch (err: unknown) {
       const detail = (err as Record<string, unknown>)?.detail;
@@ -98,6 +122,18 @@ export function DoctorFormModal({
     }
   };
 
+  const tabStyle = (active: boolean) => ({
+    padding: "6px 14px",
+    border: `1px solid ${active ? colors.primary : colors.border}`,
+    borderRadius: radius.md,
+    backgroundColor: active ? colors.primaryLight : colors.surface,
+    color: active ? colors.primaryDark : colors.textSecondary,
+    fontSize: typography.caption.fontSize,
+    fontWeight: "500" as const,
+    cursor: "pointer" as const,
+    transition: "all 0.15s ease",
+  });
+
   return (
     <Modal
       open={open}
@@ -110,14 +146,94 @@ export function DoctorFormModal({
         style={{ display: "flex", flexDirection: "column", gap: spacing.md }}
       >
         {!isEdit && (
-          <Input
-            label="ID пользователя"
-            type="number"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-            placeholder="Введите ID пользователя"
-            required
-          />
+          <div>
+            <div
+              style={{
+                fontSize: typography.caption.fontSize,
+                fontWeight: "500",
+                color: colors.textSecondary,
+                marginBottom: spacing.sm,
+              }}
+            >
+              Пользователь
+            </div>
+            <div style={{ display: "flex", gap: spacing.xs, marginBottom: spacing.sm }}>
+              <button
+                type="button"
+                onClick={() => setUserMode("new")}
+                style={tabStyle(userMode === "new")}
+              >
+                Создать нового
+              </button>
+              <button
+                type="button"
+                onClick={() => setUserMode("existing")}
+                style={tabStyle(userMode === "existing")}
+              >
+                По ID пользователя
+              </button>
+            </div>
+
+            {userMode === "existing" ? (
+              <Input
+                label="ID пользователя"
+                type="number"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                placeholder="Введите ID"
+                required
+              />
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
+                <Input
+                  label="Email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="doctor@clinic.ru"
+                  required
+                />
+                <div style={{ display: "flex", gap: spacing.sm }}>
+                  <div style={{ flex: 1 }}>
+                    <Input
+                      label="Фамилия"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Иванов"
+                      required
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <Input
+                      label="Имя"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="Иван"
+                      required
+                    />
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: spacing.sm }}>
+                  <div style={{ flex: 1 }}>
+                    <Input
+                      label="Отчество"
+                      value={patronymic}
+                      onChange={(e) => setPatronymic(e.target.value)}
+                      placeholder="Иванович"
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <Input
+                      label="Телефон"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+7 (900) 123-45-67"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {isEdit && (
@@ -226,24 +342,11 @@ export function DoctorFormModal({
           >
             Заметки
           </label>
-          <textarea
+          <RichTextEditor
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-            style={{
-              width: "100%",
-              padding: "10px 14px",
-              borderRadius: "8px",
-              border: `1px solid ${colors.border}`,
-              fontSize: typography.body.fontSize,
-              color: colors.textPrimary,
-              backgroundColor: colors.surface,
-              resize: "vertical",
-              fontFamily: "inherit",
-              lineHeight: "1.5",
-              outline: "none",
-              boxSizing: "border-box",
-            }}
+            onChange={setNotes}
+            placeholder="Заметки о враче"
+            minHeight={60}
           />
         </div>
 

@@ -67,8 +67,17 @@ def _validate_weekdays(value):
     return value
 
 
+class NewUserSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150)
+    patronymic = serializers.CharField(max_length=150, required=False, default='')
+    phone = serializers.CharField(max_length=30, required=False, default='')
+
+
 class DoctorCreateSerializer(serializers.Serializer):
-    user_id = serializers.IntegerField()
+    user_id = serializers.IntegerField(required=False)
+    new_user = NewUserSerializer(required=False)
     specialization_ids = serializers.ListField(
         child=serializers.IntegerField(), required=False, default=list
     )
@@ -81,6 +90,19 @@ class DoctorCreateSerializer(serializers.Serializer):
 
     def validate_preferred_weekdays(self, value):
         return _validate_weekdays(value)
+
+    def validate(self, attrs):
+        has_user_id = 'user_id' in attrs and attrs['user_id'] is not None
+        has_new_user = 'new_user' in attrs and attrs['new_user'] is not None
+        if not has_user_id and not has_new_user:
+            raise serializers.ValidationError(
+                'Either user_id or new_user must be provided.'
+            )
+        if has_user_id and has_new_user:
+            raise serializers.ValidationError(
+                'Provide either user_id or new_user, not both.'
+            )
+        return attrs
 
 
 class DoctorUpdateSerializer(serializers.Serializer):

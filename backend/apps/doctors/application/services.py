@@ -2,6 +2,7 @@ from django.db import transaction
 
 from apps.authorization.domain.roles import Role
 from apps.doctors.infrastructure.repositories import DoctorRepository
+from shared.domain.sanitize import sanitize_html
 
 
 class DoctorService:
@@ -19,7 +20,7 @@ class DoctorService:
         return self.doctor_repo.create(
             user=user,
             specialization_ids=specialization_ids,
-            notes=notes,
+            notes=sanitize_html(notes),
             preferred_weekdays=preferred_weekdays,
         )
 
@@ -27,6 +28,8 @@ class DoctorService:
         doctor = self.doctor_repo.get_by_id(doctor_id)
         if not doctor:
             raise ValueError('Doctor not found')
+        if 'notes' in fields:
+            fields['notes'] = sanitize_html(fields['notes'])
         return self.doctor_repo.update(doctor_id=doctor_id, **fields)
 
     def delete_doctor(self, doctor_id):

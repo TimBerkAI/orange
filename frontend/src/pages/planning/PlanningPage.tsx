@@ -585,7 +585,26 @@ function AppointmentDetailModal({
           label="Время"
           value={`${start.toLocaleDateString("ru-RU")} ${pad2(start.getHours())}:${pad2(start.getMinutes())} — ${pad2(end.getHours())}:${pad2(end.getMinutes())}`}
         />
-        <DetailRow label="Причина" value={appointment.reason || "—"} />
+        <div>
+          <span
+            style={{
+              ...typography.caption,
+              color: colors.textSecondary,
+              display: "block",
+              marginBottom: "1px",
+            }}
+          >
+            Причина
+          </span>
+          {appointment.reason ? (
+            <div
+              style={{ ...typography.body, fontWeight: "500", color: colors.textPrimary }}
+              dangerouslySetInnerHTML={{ __html: appointment.reason }}
+            />
+          ) : (
+            <span style={{ ...typography.body, fontWeight: "500", color: colors.textPrimary }}>—</span>
+          )}
+        </div>
         <div>
           <span
             style={{
