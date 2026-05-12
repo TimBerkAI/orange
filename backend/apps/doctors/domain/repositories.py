@@ -30,3 +30,6 @@ class SpecializationRepositoryInterface(ABC):
 
     @abstractmethod
     def get_by_ids(self, ids): ...
+
+    @abstractmethod
+    def delete(self, specialization_id) -> bool: ...

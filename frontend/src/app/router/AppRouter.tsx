@@ -8,6 +8,7 @@ import { PlanningPage } from "@/pages/planning/PlanningPage";
 import { DoctorsPage } from "@/pages/doctors/DoctorsPage";
 import { PatientsPage } from "@/pages/patients/PatientsPage";
 import { ProfilePage } from "@/pages/profile/ProfilePage";
+import { SpecializationsPage } from "@/pages/specializations/SpecializationsPage";
 
 export function AppRouter() {
   return (
@@ -35,8 +36,16 @@ export function AppRouter() {
           <Route
             path="doctors"
             element={
-              <ProtectedRoute roles={["admin"]}>
+              <ProtectedRoute roles={["admin", "doctor"]}>
                 <DoctorsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="specializations"
+            element={
+              <ProtectedRoute roles={["admin"]}>
+                <SpecializationsPage />
               </ProtectedRoute>
             }
           />

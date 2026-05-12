@@ -25,6 +25,30 @@ class SpecializationListView(APIView):
         specs = repo.get_all()
         return Response(SpecializationSerializer(specs, many=True).data)
 
+    def post(self, request):
+        if request.user.role != Role.ADMIN:
+            return Response(
+                {'detail': 'Only administrators can manage specializations.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        serializer = SpecializationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        specialization = serializer.save()
+        return Response(
+            SpecializationSerializer(specialization).data, status=status.HTTP_201_CREATED
+        )
+
+
+class SpecializationDetailView(APIView):
+    permission_classes = [IsAdmin]
+
+    def delete(self, request, specialization_id):
+        repo = SpecializationRepository()
+        deleted = repo.delete(specialization_id)
+        if not deleted:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class DoctorListCreateView(APIView):
     permission_classes = [IsAdminOrDoctor]

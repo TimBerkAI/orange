@@ -62,5 +62,9 @@ export async function apiFetch<T>(
     throw { status: response.status, ...error };
   }
 
+  if (response.status === 204) {
+    return undefined as unknown as T;
+  }
+
   return response.json() as Promise<T>;
 }

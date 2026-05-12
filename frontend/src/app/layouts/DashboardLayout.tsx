@@ -41,9 +41,20 @@ function UsersIcon() {
   );
 }
 
+function ClipboardIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="8" y="2" width="8" height="4" rx="1" />
+      <path d="M8 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-2" />
+      <path d="M12 11h4M12 16h4M8 11h.01M8 16h.01" />
+    </svg>
+  );
+}
+
 const navItems: NavItem[] = [
   { to: "/planning", label: "Планирование", icon: <CalendarIcon /> },
-  { to: "/doctors", label: "Врачи", icon: <StethoscopeIcon />, roles: ["admin"] },
+  { to: "/doctors", label: "Врачи", icon: <StethoscopeIcon />, roles: ["admin", "doctor"] },
+  { to: "/specializations", label: "Специальности", icon: <ClipboardIcon />, roles: ["admin"] },
   { to: "/patients", label: "Пациенты", icon: <UsersIcon /> },
 ];
 

@@ -67,3 +67,7 @@ class SpecializationRepository(SpecializationRepositoryInterface):
 
     def get_by_ids(self, ids):
         return Specialization.objects.filter(pk__in=ids)
+
+    def delete(self, specialization_id) -> bool:
+        count, _ = Specialization.objects.filter(pk=specialization_id).delete()
+        return count > 0
