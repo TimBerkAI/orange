@@ -16,11 +16,11 @@ export function UserIndicator() {
 
   if (!user) return null;
 
-  const displayName = user.profile.last_name
+  const displayName = user.profile?.last_name
     ? `${user.profile.last_name} ${user.profile.first_name.charAt(0)}.`
     : user.email;
 
-  const initials = user.profile.first_name && user.profile.last_name
+  const initials = user.profile?.first_name && user.profile?.last_name
     ? `${user.profile.last_name.charAt(0)}${user.profile.first_name.charAt(0)}`
     : user.email.charAt(0).toUpperCase();
 

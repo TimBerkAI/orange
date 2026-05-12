@@ -12,6 +12,7 @@ dependencies = [
     "django-redis>=5.4,<6",
     "django-environ>=0.12,<1",
     "django-cors-headers>=4.9.0",
+    "drf-spectacular>=0.28,<1",
 ]
 
 [dependency-groups]

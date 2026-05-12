@@ -12,7 +12,7 @@ const roleLabels: Record<string, string> = {
 export function DashboardPage() {
   const { user } = useAuth();
 
-  const greeting = user?.profile.first_name
+  const greeting = user?.profile?.first_name
     ? `${user.profile.first_name} ${user.profile.patronymic ?? ""}`.trim()
     : user?.email;
 

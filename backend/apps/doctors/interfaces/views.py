@@ -1,0 +1,154 @@
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from apps.authorization.domain.roles import Role
+from apps.authorization.infrastructure.models import User
+from apps.authorization.interfaces.permissions import IsAdmin, IsAdminOrDoctor
+from apps.doctors.application.services import DoctorService
+from apps.doctors.infrastructure.repositories import SpecializationRepository
+from apps.doctors.interfaces.serializers import (
+    DoctorCreateSerializer,
+    DoctorDetailSerializer,
+    DoctorListSerializer,
+    DoctorSelfUpdateSerializer,
+    DoctorUpdateSerializer,
+    SpecializationSerializer,
+)
+
+
+class SpecializationListView(APIView):
+    permission_classes = [IsAdminOrDoctor]
+
+    def get(self, request):
+        repo = SpecializationRepository()
+        specs = repo.get_all()
+        return Response(SpecializationSerializer(specs, many=True).data)
+
+
+class DoctorListCreateView(APIView):
+    permission_classes = [IsAdminOrDoctor]
+
+    def get(self, request):
+        service = DoctorService()
+        search = request.query_params.get('search')
+        doctors = service.list_doctors(search=search)
+        return Response(DoctorListSerializer(doctors, many=True).data)
+
+    def post(self, request):
+        if request.user.role != Role.ADMIN:
+            return Response(
+                {'detail': 'Only administrators can create doctor profiles.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = DoctorCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        user = User.objects.filter(pk=data['user_id']).first()
+        if not user:
+            return Response(
+                {'detail': 'User not found.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        service = DoctorService()
+        try:
+            doctor = service.create_doctor(
+                user=user,
+                specialization_ids=data.get('specialization_ids'),
+                notes=data.get('notes', ''),
+                preferred_weekdays=data.get('preferred_weekdays'),
+            )
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            DoctorDetailSerializer(doctor).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class DoctorDetailView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request, doctor_id):
+        service = DoctorService()
+        doctor = service.get_doctor(doctor_id)
+        if not doctor:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(DoctorDetailSerializer(doctor).data)
+
+    def patch(self, request, doctor_id):
+        service = DoctorService()
+        doctor = service.get_doctor(doctor_id)
+        if not doctor:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        serializer = DoctorUpdateSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        user_id = data.pop('user_id', None)
+        if user_id is not None:
+            user = User.objects.filter(pk=user_id).first()
+            if not user:
+                return Response(
+                    {'detail': 'User not found.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if user.role not in (Role.DOCTOR, Role.ADMIN):
+                return Response(
+                    {'detail': 'User must have doctor or admin role.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            data['user'] = user
+
+        try:
+            doctor = service.update_doctor(doctor_id, **data)
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(DoctorDetailSerializer(doctor).data)
+
+    def delete(self, request, doctor_id):
+        service = DoctorService()
+        try:
+            service.delete_doctor(doctor_id)
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DoctorMeView(APIView):
+    permission_classes = [IsAdminOrDoctor]
+
+    def get(self, request):
+        service = DoctorService()
+        doctor = service.get_doctor_by_user(request.user.id)
+        if not doctor:
+            return Response(
+                {'detail': 'You do not have a doctor profile.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response(DoctorDetailSerializer(doctor).data)
+
+    def patch(self, request):
+        service = DoctorService()
+        doctor = service.get_doctor_by_user(request.user.id)
+        if not doctor:
+            return Response(
+                {'detail': 'You do not have a doctor profile.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = DoctorSelfUpdateSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            doctor = service.update_doctor(doctor.id, **serializer.validated_data)
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(DoctorDetailSerializer(doctor).data)

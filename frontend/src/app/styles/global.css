@@ -47,3 +47,12 @@ textarea {
   outline: 2px solid #e8862d;
   outline-offset: 2px;
 }
+
+@media (max-width: 768px) {
+  .login-hero {
+    display: none !important;
+  }
+  .login-form-panel {
+    flex: 1 !important;
+  }
+}

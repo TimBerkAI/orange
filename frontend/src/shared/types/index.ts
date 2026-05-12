@@ -14,7 +14,7 @@ export interface User {
   role: Role;
   is_active: boolean;
   date_joined: string;
-  profile: UserProfile;
+  profile: UserProfile | null;
 }
 
 export interface AuthTokens {
