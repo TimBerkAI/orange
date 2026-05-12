@@ -5,6 +5,7 @@ from apps.authorization.interfaces.views import (
     LoginView,
     MeView,
     RegisterView,
+    UserSearchView,
 )
 
 app_name = 'authorization'
@@ -14,4 +15,5 @@ urlpatterns = [
     path('login/', LoginView.as_view(), name='login'),
     path('token/refresh/', CustomTokenRefreshView.as_view(), name='token-refresh'),
     path('me/', MeView.as_view(), name='me'),
+    path('users/', UserSearchView.as_view(), name='user-search'),
 ]

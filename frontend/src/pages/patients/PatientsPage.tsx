@@ -6,8 +6,9 @@ import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
 import { Modal } from "@/shared/ui/Modal";
 import { Spinner } from "@/shared/ui/Spinner";
+import { UserSearchInput } from "@/shared/ui/UserSearchInput";
 import { colors, radius, shadows, spacing, typography } from "@/shared/config/theme";
-import { createPatient, listPatients } from "@/domains/patients/api";
+import { createPatient, deletePatient, listPatients, updatePatient } from "@/domains/patients/api";
 import { PATIENT_STATUS_LABELS } from "@/domains/patients/constants";
 import type { Patient } from "@/domains/patients/types";
 import type { FormEvent, ReactNode } from "react";
@@ -65,7 +66,8 @@ export function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [modalOpen, setModalOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editPatient, setEditPatient] = useState<Patient | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadPatients = useCallback((q?: string) => {
@@ -102,7 +104,7 @@ export function PatientsPage() {
         subtitle={`${patients.length} ${pluralPatients(patients.length)}`}
         actions={
           isAdmin ? (
-            <Button onClick={() => setModalOpen(true)}>
+            <Button onClick={() => setCreateOpen(true)}>
               <PlusIcon /> Добавить пациента
             </Button>
           ) : undefined
@@ -134,13 +136,14 @@ export function PatientsPage() {
               <Th>Аллергии</Th>
               <Th>Статус</Th>
               <Th>Последний визит</Th>
+              {isAdmin && <Th />}
             </tr>
           </thead>
           <tbody>
             {patients.length === 0 ? (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={isAdmin ? 6 : 5}
                   style={{
                     textAlign: "center",
                     padding: "48px 24px",
@@ -162,8 +165,7 @@ export function PatientsPage() {
                     transition: "background-color 0.1s ease",
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLTableRowElement).style.backgroundColor =
-                      colors.surfaceHover;
+                    (e.currentTarget as HTMLTableRowElement).style.backgroundColor = colors.surfaceHover;
                   }}
                   onMouseLeave={(e) => {
                     (e.currentTarget as HTMLTableRowElement).style.backgroundColor = "transparent";
@@ -198,6 +200,29 @@ export function PatientsPage() {
                       {formatDate(patient.last_visit?.start_at)}
                     </span>
                   </Td>
+                  {isAdmin && (
+                    <Td>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditPatient(patient);
+                        }}
+                        style={{
+                          background: "none",
+                          border: `1px solid ${colors.border}`,
+                          borderRadius: radius.sm,
+                          padding: "4px 10px",
+                          cursor: "pointer",
+                          fontSize: typography.caption.fontSize,
+                          color: colors.textSecondary,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Изменить
+                      </button>
+                    </Td>
+                  )}
                 </tr>
               ))
             )}
@@ -206,14 +231,29 @@ export function PatientsPage() {
       </div>
 
       {isAdmin && (
-        <CreatePatientModal
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
-          onCreated={(p) => {
-            setPatients((prev) => [p, ...prev]);
-            setModalOpen(false);
-          }}
-        />
+        <>
+          <CreatePatientModal
+            open={createOpen}
+            onClose={() => setCreateOpen(false)}
+            onCreated={(p) => {
+              setPatients((prev) => [p, ...prev]);
+              setCreateOpen(false);
+            }}
+          />
+          <EditPatientModal
+            open={!!editPatient}
+            patient={editPatient}
+            onClose={() => setEditPatient(null)}
+            onSaved={(updated) => {
+              setPatients((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+              setEditPatient(null);
+            }}
+            onDeleted={(id) => {
+              setPatients((prev) => prev.filter((p) => p.id !== id));
+              setEditPatient(null);
+            }}
+          />
+        </>
       )}
     </div>
   );
@@ -230,7 +270,7 @@ function CreatePatientModal({
 }) {
   type UserMode = "new" | "existing";
   const [userMode, setUserMode] = useState<UserMode>("new");
-  const [userId, setUserId] = useState("");
+  const [userId, setUserId] = useState<number | null>(null);
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -243,7 +283,7 @@ function CreatePatientModal({
   useEffect(() => {
     if (open) {
       setUserMode("new");
-      setUserId("");
+      setUserId(null);
       setEmail("");
       setFirstName("");
       setLastName("");
@@ -261,7 +301,8 @@ function CreatePatientModal({
     try {
       const payload: Parameters<typeof createPatient>[0] = { allergies };
       if (userMode === "existing") {
-        payload.user_id = Number(userId);
+        if (!userId) { setError("Выберите пользователя"); setSaving(false); return; }
+        payload.user_id = userId;
       } else {
         payload.new_user = {
           email,
@@ -315,17 +356,15 @@ function CreatePatientModal({
               Создать нового
             </button>
             <button type="button" onClick={() => setUserMode("existing")} style={tabStyle(userMode === "existing")}>
-              По ID пользователя
+              Поиск пользователя
             </button>
           </div>
           {userMode === "existing" ? (
-            <Input
-              label="ID пользователя"
-              type="number"
+            <UserSearchInput
+              label="Поиск пользователя"
               value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              placeholder="Введите ID"
-              required
+              onChange={(id) => setUserId(id)}
+              placeholder="Введите email, ФИО или телефон..."
             />
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>
@@ -404,6 +443,147 @@ function CreatePatientModal({
           <Button type="submit" loading={saving}>
             Добавить
           </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function EditPatientModal({
+  open,
+  patient,
+  onClose,
+  onSaved,
+  onDeleted,
+}: {
+  open: boolean;
+  patient: Patient | null;
+  onClose: () => void;
+  onSaved: (p: Patient) => void;
+  onDeleted: (id: number) => void;
+}) {
+  const [allergies, setAllergies] = useState("");
+  const [status, setStatus] = useState<"active" | "archived">("active");
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (open && patient) {
+      setAllergies(patient.allergies ?? "");
+      setStatus(patient.status);
+      setError("");
+      setConfirmDelete(false);
+    }
+  }, [open, patient]);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!patient) return;
+    setSaving(true);
+    setError("");
+    try {
+      const updated = await updatePatient(patient.id, { allergies, status });
+      onSaved(updated);
+    } catch (err: unknown) {
+      const detail = (err as Record<string, unknown>)?.detail;
+      setError(typeof detail === "string" ? detail : "Ошибка при сохранении");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) { setConfirmDelete(true); return; }
+    if (!patient) return;
+    setDeleting(true);
+    try {
+      await deletePatient(patient.id);
+      onDeleted(patient.id);
+    } catch {
+      setError("Ошибка при удалении");
+      setDeleting(false);
+    }
+  };
+
+  if (!patient) return null;
+
+  return (
+    <Modal open={open} onClose={onClose} title="Редактировать пациента" width={440}>
+      <form
+        onSubmit={(e) => void handleSubmit(e)}
+        style={{ display: "flex", flexDirection: "column", gap: spacing.md }}
+      >
+        <div
+          style={{
+            padding: spacing.md,
+            backgroundColor: colors.primaryLight,
+            borderRadius: radius.md,
+          }}
+        >
+          <div style={{ ...typography.caption, color: colors.textSecondary }}>Пациент</div>
+          <div style={{ ...typography.body, fontWeight: "500", color: colors.textPrimary }}>
+            {patient.full_name || patient.user.email}
+          </div>
+          <div style={{ ...typography.caption, color: colors.textMuted }}>{patient.user.email}</div>
+        </div>
+
+        <Input
+          label="Аллергии"
+          value={allergies}
+          onChange={(e) => setAllergies(e.target.value)}
+          placeholder="Пенициллин, Лидокаин и т.д."
+        />
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          <label style={{ fontSize: typography.caption.fontSize, fontWeight: "500", color: colors.textSecondary }}>
+            Статус
+          </label>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as "active" | "archived")}
+            style={{
+              padding: "10px 14px",
+              borderRadius: radius.md,
+              border: `1px solid ${colors.border}`,
+              fontSize: typography.body.fontSize,
+              color: colors.textPrimary,
+              backgroundColor: colors.surface,
+              outline: "none",
+            }}
+          >
+            <option value="active">Активный</option>
+            <option value="archived">Архивный</option>
+          </select>
+        </div>
+
+        {error && (
+          <div
+            style={{
+              padding: `${spacing.sm} ${spacing.md}`,
+              backgroundColor: colors.dangerLight,
+              color: colors.danger,
+              borderRadius: "8px",
+              fontSize: typography.caption.fontSize,
+            }}
+          >
+            {error}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: spacing.sm, justifyContent: "space-between" }}>
+          <Button type="button" variant="danger" loading={deleting} onClick={() => void handleDelete()}>
+            {confirmDelete ? "Подтвердить удаление" : "Удалить"}
+          </Button>
+          <div style={{ display: "flex", gap: spacing.sm }}>
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Отмена
+            </Button>
+            <Button type="submit" loading={saving}>
+              Сохранить
+            </Button>
+          </div>
         </div>
       </form>
     </Modal>

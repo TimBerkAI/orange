@@ -3,6 +3,7 @@ import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
 import { Modal } from "@/shared/ui/Modal";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
+import { UserSearchInput } from "@/shared/ui/UserSearchInput";
 import { colors, radius, spacing, typography } from "@/shared/config/theme";
 import { ALL_WEEKDAYS, WEEKDAY_LABELS } from "../weekdays";
 import type { Doctor, DoctorCreatePayload, NewUserPayload, Specialization } from "../types";
@@ -29,7 +30,7 @@ export function DoctorFormModal({
   const isEdit = !!doctor;
 
   const [userMode, setUserMode] = useState<UserMode>("new");
-  const [userId, setUserId] = useState("");
+  const [userId, setUserId] = useState<number | null>(null);
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -46,7 +47,7 @@ export function DoctorFormModal({
   useEffect(() => {
     if (open) {
       setUserMode("new");
-      setUserId(doctor ? String(doctor.user.id) : "");
+      setUserId(doctor ? doctor.user.id : null);
       setEmail("");
       setFirstName("");
       setLastName("");
@@ -84,7 +85,7 @@ export function DoctorFormModal({
       };
       if (!isEdit) {
         if (userMode === "existing") {
-          payload.user_id = Number(userId);
+          payload.user_id = userId ?? undefined;
         } else {
           const newUser: NewUserPayload = {
             email,
@@ -170,18 +171,16 @@ export function DoctorFormModal({
                 onClick={() => setUserMode("existing")}
                 style={tabStyle(userMode === "existing")}
               >
-                По ID пользователя
+                Поиск пользователя
               </button>
             </div>
 
             {userMode === "existing" ? (
-              <Input
-                label="ID пользователя"
-                type="number"
+              <UserSearchInput
+                label="Поиск пользователя"
                 value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                placeholder="Введите ID"
-                required
+                onChange={(id) => setUserId(id)}
+                placeholder="Введите email, ФИО или телефон..."
               />
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: spacing.sm }}>

@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -5,6 +6,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from apps.authorization.application.services import AuthService
+from apps.authorization.infrastructure.models import User
+from apps.authorization.interfaces.permissions import IsAdmin
 from apps.authorization.interfaces.serializers import (
     CustomTokenObtainPairSerializer,
     RegisterSerializer,
@@ -63,3 +66,22 @@ class MeView(APIView):
         request.user.refresh_from_db()
 
         return Response(UserSerializer(request.user).data)
+
+
+class UserSearchView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        search = request.query_params.get("search", "").strip()
+        if len(search) < 2:
+            return Response([])
+
+        qs = User.objects.select_related("profile").filter(
+            Q(email__icontains=search)
+            | Q(profile__first_name__icontains=search)
+            | Q(profile__last_name__icontains=search)
+            | Q(profile__patronymic__icontains=search)
+            | Q(profile__phone__icontains=search)
+        ).order_by("email")[:20]
+
+        return Response(UserSerializer(qs, many=True).data)

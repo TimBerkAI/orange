@@ -76,6 +76,7 @@ export function PatientCardPage() {
   const [odontogram, setOdontogram] = useState<OdontogramType | null>(null);
   const [soap, setSoap] = useState<SoapNote | null>(null);
   const [loadingVisit, setLoadingVisit] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     Promise.all([getPatient(patientId), listVisits(patientId)])
@@ -160,7 +161,6 @@ export function PatientCardPage() {
   }
 
   const selectedVisit = visits.find((v) => v.id === selectedVisitId) ?? null;
-  const isMobile = useIsMobile();
 
   return (
     <div

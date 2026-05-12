@@ -27,3 +27,7 @@ export function refreshToken(refresh: string): Promise<{ access: string }> {
     body: JSON.stringify({ refresh }),
   });
 }
+
+export function searchUsers(search: string): Promise<User[]> {
+  return apiFetch<User[]>(`/auth/users/?search=${encodeURIComponent(search)}`);
+}

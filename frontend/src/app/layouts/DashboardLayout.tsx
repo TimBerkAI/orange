@@ -183,59 +183,36 @@ export function DashboardLayout() {
           borderBottom: `1px solid ${colors.borderLight}`,
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
           gap: spacing.sm,
+          overflow: "hidden",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: spacing.sm, overflow: "hidden" }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              minWidth: 36,
-              borderRadius: radius.md,
-              background: `linear-gradient(135deg, ${colors.primary}, ${colors.primaryDark})`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <span style={{ color: "#fff", fontWeight: "600", fontSize: "16px" }}>O</span>
-          </div>
-          {showLabels && (
-            <span
-              style={{
-                ...typography.subheading,
-                color: colors.textPrimary,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              Orange Office
-            </span>
-          )}
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            minWidth: 36,
+            borderRadius: radius.md,
+            background: `linear-gradient(135deg, ${colors.primary}, ${colors.primaryDark})`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <span style={{ color: "#fff", fontWeight: "600", fontSize: "16px" }}>O</span>
         </div>
-        {!isMobile && (
-          <button
-            onClick={toggleCollapse}
-            title={collapsed ? "Развернуть" : "Свернуть"}
+        {showLabels && (
+          <span
             style={{
-              background: "none",
-              border: `1px solid ${colors.borderLight}`,
-              borderRadius: radius.sm,
-              padding: "4px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: colors.textMuted,
-              transition: "all 0.15s ease",
-              flexShrink: 0,
+              ...typography.subheading,
+              color: colors.textPrimary,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}
           >
-            {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-          </button>
+            Orange Office
+          </span>
         )}
       </div>
 
@@ -259,8 +236,38 @@ export function DashboardLayout() {
           padding: collapsed && !isMobile ? `${spacing.sm} ${spacing.xs}` : spacing.md,
           borderTop: `1px solid ${colors.borderLight}`,
           overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          gap: spacing.xs,
         }}
       >
+        {!isMobile && (
+          <button
+            onClick={toggleCollapse}
+            title={collapsed ? "Развернуть меню" : "Свернуть меню"}
+            style={{
+              background: "none",
+              border: `1px solid ${colors.borderLight}`,
+              borderRadius: radius.md,
+              padding: "6px",
+              cursor: "pointer",
+              color: colors.textSecondary,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: collapsed ? 36 : "100%",
+              margin: collapsed ? "0 auto" : 0,
+              transition: "all 0.15s ease",
+            }}
+          >
+            {collapsed ? <ChevronRightIcon /> : (
+              <span style={{ display: "flex", alignItems: "center", gap: spacing.xs, fontSize: "13px" }}>
+                <ChevronLeftIcon />
+                Свернуть
+              </span>
+            )}
+          </button>
+        )}
         {showLabels ? (
           <UserIndicator />
         ) : (
