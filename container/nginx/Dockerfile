@@ -10,6 +10,9 @@ RUN npm run build
 
 FROM nginx:stable-alpine
 
-COPY --from=frontend /app/dist /usr/share/nginx/html
+COPY --from=frontend /app/dist/ /usr/share/nginx/html/
 COPY container/nginx/nginx.conf /etc/nginx/nginx.conf
-COPY container/nginx/conf.d /etc/nginx/conf.d
+
+RUN rm -f /etc/nginx/conf.d/default.conf
+
+COPY container/nginx/conf.d/app.conf /etc/nginx/conf.d/app.conf
