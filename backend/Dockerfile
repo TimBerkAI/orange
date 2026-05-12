@@ -4,7 +4,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV UV_PROJECT_ENVIRONMENT=/usr/local
 ENV UV_COMPILE_BYTECODE=1
-ENV DJANGO_SETTINGS_MODULE=config.settings.prod
+ENV DJANGO_SETTINGS_MODULE=config.settings
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
@@ -15,6 +15,8 @@ RUN uv sync --frozen --no-dev
 
 COPY . .
 
+RUN python manage.py collectstatic --noinput
+
 EXPOSE 8000
 
-CMD ["uv", "run", "python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

@@ -1,4 +1,49 @@
 services:
+  nginx:
+    image: nginx:stable-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./container/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./container/nginx/conf.d:/etc/nginx/conf.d:ro
+      - static_files:/var/www/static:ro
+      - frontend_dist:/usr/share/nginx/html:ro
+    depends_on:
+      - app
+      - frontend
+    networks:
+      - internal
+
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      DEBUG: "False"
+      DB_HOST: db
+      REDIS_URL: redis://redis:6379/0
+      STATIC_ROOT: /var/www/static
+    volumes:
+      - static_files:/var/www/static
+    depends_on:
+      - db
+      - redis
+    networks:
+      - internal
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    volumes:
+      - frontend_dist:/app/dist
+    networks:
+      - internal
+
   db:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -6,35 +51,25 @@ services:
       POSTGRES_DB: dental
       POSTGRES_USER: dental
       POSTGRES_PASSWORD: dental
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
-
-  app:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    ports:
-      - "8000:8000"
-    depends_on:
-      - db
-      - redis
-    env_file:
-      - ./backend/.env
-    environment:
-      POSTGRES_HOST: db
-      REDIS_URL: redis://redis:6379/0
+    networks:
+      - internal
 
 volumes:
   postgres_data:
   redis_data:
+  static_files:
+  frontend_dist:
+
+networks:
+  internal:
+    driver: bridge

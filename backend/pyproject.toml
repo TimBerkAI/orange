@@ -36,7 +36,7 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "config.settings.test"
+DJANGO_SETTINGS_MODULE = "config.settings"
 python_files = ["test_*.py", "*_tests.py"]
 addopts = "-ra -q --strict-markers --disable-warnings"
 testpaths = ["apps"]
