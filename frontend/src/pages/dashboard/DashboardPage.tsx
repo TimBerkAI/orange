@@ -20,7 +20,7 @@ export function DashboardPage() {
     <div>
       <PageHeader
         title={`Добро пожаловать, ${greeting}`}
-        subtitle="Рабочее пространство Dental Office"
+        subtitle="Рабочее пространство Orange Office"
       />
 
       <div
@@ -31,7 +31,13 @@ export function DashboardPage() {
         }}
       >
         <Card>
-          <div style={{ ...typography.subheading, color: colors.textPrimary, marginBottom: spacing.sm }}>
+          <div
+            style={{
+              ...typography.subheading,
+              color: colors.textPrimary,
+              marginBottom: spacing.sm,
+            }}
+          >
             Ваша роль
           </div>
           <div
@@ -50,7 +56,13 @@ export function DashboardPage() {
         </Card>
 
         <Card>
-          <div style={{ ...typography.subheading, color: colors.textPrimary, marginBottom: spacing.sm }}>
+          <div
+            style={{
+              ...typography.subheading,
+              color: colors.textPrimary,
+              marginBottom: spacing.sm,
+            }}
+          >
             Email
           </div>
           <div style={{ ...typography.body, color: colors.textSecondary }}>
@@ -59,7 +71,13 @@ export function DashboardPage() {
         </Card>
 
         <Card>
-          <div style={{ ...typography.subheading, color: colors.textPrimary, marginBottom: spacing.sm }}>
+          <div
+            style={{
+              ...typography.subheading,
+              color: colors.textPrimary,
+              marginBottom: spacing.sm,
+            }}
+          >
             Дата регистрации
           </div>
           <div style={{ ...typography.body, color: colors.textSecondary }}>

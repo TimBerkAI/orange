@@ -13,7 +13,7 @@ def api_client():
 def _make_authenticated_client(user):
     client = APIClient()
     token = CustomRefreshToken.for_user(user)
-    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.access_token}")
+    client.credentials(HTTP_AUTHORIZATION=f'Bearer {token.access_token}')
     return client
 
 

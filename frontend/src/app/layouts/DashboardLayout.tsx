@@ -39,7 +39,9 @@ function SidebarLink({ to, label, icon }: NavItem) {
         color: isActive ? colors.primaryDark : colors.textSecondary,
       })}
     >
-      <span style={{ fontSize: "16px", width: 20, textAlign: "center" }}>{icon}</span>
+      <span style={{ fontSize: "16px", width: 20, textAlign: "center" }}>
+        {icon}
+      </span>
       {label}
     </NavLink>
   );
@@ -76,7 +78,9 @@ export function DashboardLayout() {
             borderBottom: `1px solid ${colors.borderLight}`,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
+          <div
+            style={{ display: "flex", alignItems: "center", gap: spacing.sm }}
+          >
             <div
               style={{
                 width: 36,
@@ -88,7 +92,11 @@ export function DashboardLayout() {
                 justifyContent: "center",
               }}
             >
-              <span style={{ color: "#fff", fontWeight: "600", fontSize: "16px" }}>D</span>
+              <span
+                style={{ color: "#fff", fontWeight: "600", fontSize: "16px" }}
+              >
+                D
+              </span>
             </div>
             <span
               style={{
@@ -96,7 +104,7 @@ export function DashboardLayout() {
                 color: colors.textPrimary,
               }}
             >
-              Dental Office
+              Orange Office
             </span>
           </div>
         </div>

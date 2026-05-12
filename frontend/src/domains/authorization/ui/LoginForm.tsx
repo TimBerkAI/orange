@@ -1,7 +1,13 @@
 import { type FormEvent, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
-import { colors, radius, shadows, spacing, typography } from "@/shared/config/theme";
+import {
+  colors,
+  radius,
+  shadows,
+  spacing,
+  typography,
+} from "@/shared/config/theme";
 
 interface LoginFormProps {
   onSubmit: (email: string, password: string) => Promise<void>;
@@ -52,7 +58,11 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
               marginBottom: spacing.md,
             }}
           >
-            <span style={{ fontSize: "24px", color: "#fff", fontWeight: "600" }}>D</span>
+            <span
+              style={{ fontSize: "24px", color: "#fff", fontWeight: "600" }}
+            >
+              D
+            </span>
           </div>
           <h1
             style={{
@@ -61,14 +71,16 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
               marginBottom: spacing.xs,
             }}
           >
-            Dental Office
+            Orange Office
           </h1>
           <p style={{ ...typography.body, color: colors.textSecondary }}>
             Войдите в систему
           </p>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: spacing.md }}>
+        <div
+          style={{ display: "flex", flexDirection: "column", gap: spacing.md }}
+        >
           <Input
             label="Email"
             type="email"

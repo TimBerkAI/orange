@@ -8,7 +8,7 @@ class UserFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = User
 
-    email = factory.Sequence(lambda n: f"user{n}@example.com")
+    email = factory.Sequence(lambda n: f'user{n}@example.com')
     role = Role.PATIENT
     is_active = True
     is_staff = False
@@ -20,7 +20,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 
     @factory.post_generation
     def password(self, create, extracted, **kwargs):
-        pwd = extracted or "testpass123"
+        pwd = extracted or 'testpass123'
         self.set_password(pwd)
         if create:
             self.save()
@@ -37,8 +37,8 @@ class UserProfileFactory(factory.django.DjangoModelFactory):
         model = UserProfile
 
     user = factory.SubFactory(UserFactory)
-    first_name = factory.Faker("first_name")
-    last_name = factory.Faker("last_name")
-    patronymic = ""
-    phone = factory.Faker("phone_number")
-    date_of_birth = factory.Faker("date_of_birth", minimum_age=18, maximum_age=80)
+    first_name = factory.Faker('first_name')
+    last_name = factory.Faker('last_name')
+    patronymic = ''
+    phone = factory.Faker('phone_number')
+    date_of_birth = factory.Faker('date_of_birth', minimum_age=18, maximum_age=80)

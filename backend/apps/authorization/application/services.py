@@ -12,10 +12,10 @@ class AuthService:
     @transaction.atomic
     def register_user(self, *, email: str, password: str, role: str, profile_data: dict):
         if self.user_repo.exists_by_email(email):
-            raise ValueError("User with this email already exists")
+            raise ValueError('User with this email already exists')
 
         if role not in [r.value for r in Role]:
-            raise ValueError(f"Invalid role: {role}")
+            raise ValueError(f'Invalid role: {role}')
 
         is_staff = role == Role.ADMIN
         user = self.user_repo.create(email=email, password=password, role=role, is_staff=is_staff)

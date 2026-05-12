@@ -99,8 +99,8 @@ class TestJwtContainsRole:
         token = CustomRefreshToken.for_user(patient_user)
         access = token.access_token
 
-        assert access["role"] == Role.PATIENT
-        assert access["email"] == patient_user.email
+        assert access['role'] == Role.PATIENT
+        assert access['email'] == patient_user.email
 
     def test_jwt_admin_role(self, admin_user):
         from apps.authorization.infrastructure.tokens import CustomRefreshToken
@@ -108,4 +108,4 @@ class TestJwtContainsRole:
         token = CustomRefreshToken.for_user(admin_user)
         access = token.access_token
 
-        assert access["role"] == Role.ADMIN
+        assert access['role'] == Role.ADMIN

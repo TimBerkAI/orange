@@ -14,28 +14,28 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
 
-    USERNAME_FIELD = "email"
+    USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
     class Meta:
-        db_table = "auth_user"
+        db_table = 'auth_user'
 
     def __str__(self):
         return self.email
 
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
-    first_name = models.CharField(max_length=150, default="")
-    last_name = models.CharField(max_length=150, default="")
-    patronymic = models.CharField(max_length=150, blank=True, default="")
-    phone = models.CharField(max_length=30, blank=True, default="")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    first_name = models.CharField(max_length=150, default='')
+    last_name = models.CharField(max_length=150, default='')
+    patronymic = models.CharField(max_length=150, blank=True, default='')
+    phone = models.CharField(max_length=30, blank=True, default='')
     date_of_birth = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "auth_user_profile"
+        db_table = 'auth_user_profile'
 
     def __str__(self):
-        return f"{self.last_name} {self.first_name}"
+        return f'{self.last_name} {self.first_name}'

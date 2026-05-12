@@ -23,17 +23,17 @@ class RegisterView(APIView):
 
         service = AuthService()
         profile_data = {
-            "first_name": data["first_name"],
-            "last_name": data["last_name"],
-            "patronymic": data.get("patronymic", ""),
-            "phone": data.get("phone", ""),
-            "date_of_birth": data.get("date_of_birth"),
+            'first_name': data['first_name'],
+            'last_name': data['last_name'],
+            'patronymic': data.get('patronymic', ''),
+            'phone': data.get('phone', ''),
+            'date_of_birth': data.get('date_of_birth'),
         }
 
         user = service.register_user(
-            email=data["email"],
-            password=data["password"],
-            role=data["role"],
+            email=data['email'],
+            password=data['password'],
+            role=data['role'],
             profile_data=profile_data,
         )
 

@@ -12,33 +12,33 @@ class TestRegisterUserCommand:
 
     def test_register_creates_user_and_profile(self):
         user = self.service.register_user(
-            email="test@example.com",
-            password="securepass1",
+            email='test@example.com',
+            password='securepass1',
             role=Role.PATIENT,
             profile_data={
-                "first_name": "Ivan",
-                "last_name": "Ivanov",
-                "patronymic": "Ivanovich",
-                "phone": "+79991234567",
+                'first_name': 'Ivan',
+                'last_name': 'Ivanov',
+                'patronymic': 'Ivanovich',
+                'phone': '+79991234567',
             },
         )
 
         assert user.pk is not None
-        assert user.email == "test@example.com"
+        assert user.email == 'test@example.com'
         assert user.role == Role.PATIENT
-        assert user.check_password("securepass1")
+        assert user.check_password('securepass1')
 
         profile = UserProfile.objects.get(user=user)
-        assert profile.first_name == "Ivan"
-        assert profile.last_name == "Ivanov"
-        assert profile.patronymic == "Ivanovich"
+        assert profile.first_name == 'Ivan'
+        assert profile.last_name == 'Ivanov'
+        assert profile.patronymic == 'Ivanovich'
 
     def test_register_admin_sets_is_staff(self):
         user = self.service.register_user(
-            email="admin@example.com",
-            password="securepass1",
+            email='admin@example.com',
+            password='securepass1',
             role=Role.ADMIN,
-            profile_data={"first_name": "Admin", "last_name": "Adminov"},
+            profile_data={'first_name': 'Admin', 'last_name': 'Adminov'},
         )
 
         assert user.is_staff is True
@@ -46,27 +46,27 @@ class TestRegisterUserCommand:
 
     def test_register_duplicate_email_raises(self):
         self.service.register_user(
-            email="dup@example.com",
-            password="securepass1",
+            email='dup@example.com',
+            password='securepass1',
             role=Role.PATIENT,
-            profile_data={"first_name": "A", "last_name": "B"},
+            profile_data={'first_name': 'A', 'last_name': 'B'},
         )
 
-        with pytest.raises(ValueError, match="already exists"):
+        with pytest.raises(ValueError, match='already exists'):
             self.service.register_user(
-                email="dup@example.com",
-                password="securepass1",
+                email='dup@example.com',
+                password='securepass1',
                 role=Role.DOCTOR,
-                profile_data={"first_name": "C", "last_name": "D"},
+                profile_data={'first_name': 'C', 'last_name': 'D'},
             )
 
     def test_register_invalid_role_raises(self):
-        with pytest.raises(ValueError, match="Invalid role"):
+        with pytest.raises(ValueError, match='Invalid role'):
             self.service.register_user(
-                email="bad@example.com",
-                password="securepass1",
-                role="invalid_role",
-                profile_data={"first_name": "A", "last_name": "B"},
+                email='bad@example.com',
+                password='securepass1',
+                role='invalid_role',
+                profile_data={'first_name': 'A', 'last_name': 'B'},
             )
 
     def test_register_transaction_rollback_on_profile_failure(self):
@@ -76,10 +76,10 @@ class TestRegisterUserCommand:
 
         with pytest.raises(IntegrityError):
             self.service.register_user(
-                email="rollback@example.com",
-                password="securepass1",
+                email='rollback@example.com',
+                password='securepass1',
                 role=Role.PATIENT,
-                profile_data={"first_name": None, "last_name": None},
+                profile_data={'first_name': None, 'last_name': None},
             )
 
         assert User.objects.count() == initial_count
@@ -92,14 +92,14 @@ class TestUpdateProfile:
 
     def test_update_profile_fields(self):
         user = self.service.register_user(
-            email="update@example.com",
-            password="securepass1",
+            email='update@example.com',
+            password='securepass1',
             role=Role.PATIENT,
-            profile_data={"first_name": "Old", "last_name": "Name"},
+            profile_data={'first_name': 'Old', 'last_name': 'Name'},
         )
 
-        profile = self.service.update_profile(user.id, first_name="New", phone="+71112223344")
+        profile = self.service.update_profile(user.id, first_name='New', phone='+71112223344')
 
-        assert profile.first_name == "New"
-        assert profile.phone == "+71112223344"
-        assert profile.last_name == "Name"
+        assert profile.first_name == 'New'
+        assert profile.phone == '+71112223344'
+        assert profile.last_name == 'Name'

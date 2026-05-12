@@ -269,7 +269,7 @@ target-version = "py313"
 select = ["E", "F", "I", "UP", "B", "DJ", "PT"]
 
 [tool.ruff.format]
-quote-style = "double"
+quote-style = "single"
 indent-style = "space"
 ```
 
