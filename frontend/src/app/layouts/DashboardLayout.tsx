@@ -55,7 +55,7 @@ const navItems: NavItem[] = [
   { to: "/planning", label: "Планирование", icon: <CalendarIcon /> },
   { to: "/doctors", label: "Врачи", icon: <StethoscopeIcon />, roles: ["admin", "doctor"] },
   { to: "/specializations", label: "Специальности", icon: <ClipboardIcon />, roles: ["admin"] },
-  { to: "/patients", label: "Пациенты", icon: <UsersIcon /> },
+  { to: "/patients", label: "Пациенты", icon: <UsersIcon />, roles: ["admin", "doctor"] },
 ];
 
 function SidebarLink({ to, label, icon }: NavItem) {

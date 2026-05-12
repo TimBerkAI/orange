@@ -6,6 +6,7 @@ import { LoginPage } from "@/pages/auth/LoginPage";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
 import { PlanningPage } from "@/pages/planning/PlanningPage";
 import { DoctorsPage } from "@/pages/doctors/DoctorsPage";
+import { PatientCardPage } from "@/pages/patients/PatientCardPage";
 import { PatientsPage } from "@/pages/patients/PatientsPage";
 import { ProfilePage } from "@/pages/profile/ProfilePage";
 import { SpecializationsPage } from "@/pages/specializations/SpecializationsPage";
@@ -49,7 +50,22 @@ export function AppRouter() {
               </ProtectedRoute>
             }
           />
-          <Route path="patients" element={<PatientsPage />} />
+          <Route
+            path="patients"
+            element={
+              <ProtectedRoute roles={["admin", "doctor"]}>
+                <PatientsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="patients/:id"
+            element={
+              <ProtectedRoute roles={["admin", "doctor"]}>
+                <PatientCardPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="profile" element={<ProfilePage />} />
         </Route>
 

@@ -1,0 +1,234 @@
+from rest_framework import serializers
+
+from apps.authorization.infrastructure.models import User
+from apps.patients.domain.enums import PatientStatus, ToothStatus, VisitStatus
+from apps.patients.infrastructure.models import (
+    OdontogramEntry,
+    Patient,
+    SoapNote,
+    Tooth,
+    Visit,
+)
+
+
+class ToothSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tooth
+        fields = ['id', 'number', 'name']
+
+
+class PatientUserSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(source='profile.first_name', default='')
+    last_name = serializers.CharField(source='profile.last_name', default='')
+    patronymic = serializers.CharField(source='profile.patronymic', default='')
+    phone = serializers.CharField(source='profile.phone', default='')
+    date_of_birth = serializers.DateField(
+        source='profile.date_of_birth',
+        default=None,
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'email',
+            'first_name',
+            'last_name',
+            'patronymic',
+            'phone',
+            'date_of_birth',
+        ]
+        read_only_fields = fields
+
+
+class DoctorBriefSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    full_name = serializers.CharField()
+    email = serializers.CharField(source='user.email')
+
+
+class PatientListSerializer(serializers.ModelSerializer):
+    user = PatientUserSerializer(read_only=True)
+    full_name = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = Patient
+        fields = [
+            'id',
+            'user',
+            'full_name',
+            'allergies',
+            'status',
+            'created_at',
+        ]
+
+
+class PatientDetailSerializer(serializers.ModelSerializer):
+    user = PatientUserSerializer(read_only=True)
+    full_name = serializers.CharField(read_only=True)
+    last_visit = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Patient
+        fields = [
+            'id',
+            'user',
+            'full_name',
+            'allergies',
+            'status',
+            'created_at',
+            'updated_at',
+            'last_visit',
+        ]
+
+    def get_last_visit(self, obj):
+        visit = obj.visits.order_by('-scheduled_at').first()
+        if not visit:
+            return None
+        return {
+            'id': visit.id,
+            'scheduled_at': visit.scheduled_at,
+            'status': visit.status,
+        }
+
+
+class PatientCreateSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    allergies = serializers.CharField(required=False, default='', allow_blank=True)
+    status = serializers.ChoiceField(
+        choices=PatientStatus.choices(),
+        default=PatientStatus.ACTIVE,
+    )
+
+
+class PatientUpdateSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField(required=False)
+    allergies = serializers.CharField(required=False, allow_blank=True)
+    status = serializers.ChoiceField(
+        choices=PatientStatus.choices(),
+        required=False,
+    )
+
+
+class VisitToothSerializer(serializers.Serializer):
+    id = serializers.IntegerField(source='tooth.id')
+    number = serializers.IntegerField(source='tooth.number')
+    name = serializers.CharField(source='tooth.name')
+
+
+class VisitListSerializer(serializers.ModelSerializer):
+    doctor = DoctorBriefSerializer(read_only=True)
+    teeth = VisitToothSerializer(
+        source='visit_teeth',
+        many=True,
+        read_only=True,
+    )
+
+    class Meta:
+        model = Visit
+        fields = [
+            'id',
+            'scheduled_at',
+            'doctor',
+            'reason',
+            'teeth',
+            'status',
+            'created_at',
+        ]
+
+
+class VisitDetailSerializer(serializers.ModelSerializer):
+    doctor = DoctorBriefSerializer(read_only=True)
+    teeth = VisitToothSerializer(
+        source='visit_teeth',
+        many=True,
+        read_only=True,
+    )
+    has_odontogram = serializers.SerializerMethodField()
+    has_soap = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Visit
+        fields = [
+            'id',
+            'patient_id',
+            'scheduled_at',
+            'doctor',
+            'reason',
+            'teeth',
+            'status',
+            'has_odontogram',
+            'has_soap',
+            'created_at',
+            'updated_at',
+        ]
+
+    def get_has_odontogram(self, obj):
+        return hasattr(obj, 'odontogram')
+
+    def get_has_soap(self, obj):
+        return hasattr(obj, 'soap_note')
+
+
+class VisitCreateSerializer(serializers.Serializer):
+    doctor_id = serializers.IntegerField()
+    scheduled_at = serializers.DateTimeField()
+    reason = serializers.CharField(required=False, default='', allow_blank=True)
+    tooth_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        default=list,
+    )
+    status = serializers.ChoiceField(
+        choices=VisitStatus.choices(),
+        default=VisitStatus.PLANNED,
+    )
+
+
+class VisitUpdateSerializer(serializers.Serializer):
+    doctor_id = serializers.IntegerField(required=False)
+    scheduled_at = serializers.DateTimeField(required=False)
+    reason = serializers.CharField(required=False, allow_blank=True)
+    tooth_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+    )
+    status = serializers.ChoiceField(
+        choices=VisitStatus.choices(),
+        required=False,
+    )
+
+
+class OdontogramEntrySerializer(serializers.ModelSerializer):
+    tooth = ToothSerializer(read_only=True)
+
+    class Meta:
+        model = OdontogramEntry
+        fields = ['id', 'tooth', 'status']
+
+
+class OdontogramSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    visit_id = serializers.IntegerField()
+    entries = OdontogramEntrySerializer(many=True, read_only=True)
+
+
+class OdontogramEntryUpdateSerializer(serializers.Serializer):
+    tooth_id = serializers.IntegerField()
+    status = serializers.ChoiceField(choices=ToothStatus.choices())
+
+
+class SoapNoteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SoapNote
+        fields = [
+            'id',
+            'visit_id',
+            'subjective',
+            'objective',
+            'assessment',
+            'plan',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'visit_id', 'created_at', 'updated_at']
