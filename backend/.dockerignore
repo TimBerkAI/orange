@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+.cache/
+.eggs/
+*.egg-info/
+build/
+dist/
+site/
+venv/
+.venv/
+env/
+
+# Django
+media/
+staticfiles/
+local_settings.py
+
+# Docker
+*.pid

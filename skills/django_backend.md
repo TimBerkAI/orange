@@ -37,11 +37,7 @@ backend/
 ├── docker-compose.yml
 ├── manage.py
 ├── config/
-│   ├── settings/
-│   │   ├── base.py
-│   │   ├── local.py
-│   │   ├── test.py
-│   │   └── prod.py
+│   ├── settings.py
 │   ├── urls.py
 │   ├── asgi.py
 │   └── wsgi.py
