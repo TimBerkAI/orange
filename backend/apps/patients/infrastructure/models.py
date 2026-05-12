@@ -89,7 +89,8 @@ class Visit(models.Model):
         on_delete=models.CASCADE,
         related_name='visits',
     )
-    scheduled_at = models.DateTimeField()
+    start_at = models.DateTimeField()
+    end_at = models.DateTimeField()
     reason = models.TextField(blank=True, default='')
     status = models.CharField(
         max_length=20,
@@ -101,10 +102,10 @@ class Visit(models.Model):
 
     class Meta:
         db_table = 'patients_visit'
-        ordering = ['-scheduled_at']
+        ordering = ['-start_at']
 
     def __str__(self):
-        return f'{self.patient} @ {self.scheduled_at:%Y-%m-%d %H:%M}'
+        return f'{self.patient} @ {self.start_at:%Y-%m-%d %H:%M}'
 
 
 class VisitTooth(models.Model):

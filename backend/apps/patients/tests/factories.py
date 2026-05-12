@@ -49,7 +49,8 @@ class VisitFactory(factory.django.DjangoModelFactory):
 
     patient = factory.SubFactory(PatientFactory)
     doctor = factory.SubFactory(DoctorFactory)
-    scheduled_at = factory.LazyFunction(timezone.now)
+    start_at = factory.LazyFunction(timezone.now)
+    end_at = factory.LazyFunction(lambda: timezone.now() + timezone.timedelta(minutes=30))
     reason = 'Консультация'
     status = VisitStatus.PLANNED
 

@@ -81,11 +81,12 @@ class VisitRepository(VisitRepositoryInterface):
     def list_by_patient(self, patient_id):
         return self._base_qs().filter(patient_id=patient_id)
 
-    def create(self, *, patient, doctor, scheduled_at, reason, status='planned'):
+    def create(self, *, patient, doctor, start_at, end_at, reason, status='planned'):
         return Visit.objects.create(
             patient=patient,
             doctor=doctor,
-            scheduled_at=scheduled_at,
+            start_at=start_at,
+            end_at=end_at,
             reason=reason,
             status=status,
         )
@@ -95,15 +96,15 @@ class VisitRepository(VisitRepositoryInterface):
         return self.get_by_id(visit_id)
 
     def get_previous_visit(self, patient_id, before_visit_id):
-        current = Visit.objects.filter(pk=before_visit_id).values('scheduled_at').first()
+        current = Visit.objects.filter(pk=before_visit_id).values('start_at').first()
         if not current:
             return None
         return (
             Visit.objects.filter(
                 patient_id=patient_id,
-                scheduled_at__lt=current['scheduled_at'],
+                start_at__lt=current['start_at'],
             )
-            .order_by('-scheduled_at')
+            .order_by('-start_at')
             .first()
         )
 

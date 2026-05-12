@@ -204,7 +204,8 @@ class VisitListCreateView(APIView):
         visit = service.create_visit(
             patient=patient,
             doctor=doctor,
-            scheduled_at=data['scheduled_at'],
+            start_at=data['start_at'],
+            end_at=data['end_at'],
             reason=data.get('reason', ''),
             tooth_ids=data.get('tooth_ids'),
             status=data.get('status', 'planned'),

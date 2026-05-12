@@ -52,7 +52,7 @@ function ClipboardIcon() {
 }
 
 const navItems: NavItem[] = [
-  { to: "/planning", label: "Планирование", icon: <CalendarIcon /> },
+  { to: "/planning", label: "Планирование", icon: <CalendarIcon />, roles: ["admin", "doctor"] },
   { to: "/doctors", label: "Врачи", icon: <StethoscopeIcon />, roles: ["admin", "doctor"] },
   { to: "/specializations", label: "Специальности", icon: <ClipboardIcon />, roles: ["admin"] },
   { to: "/patients", label: "Пациенты", icon: <UsersIcon />, roles: ["admin", "doctor"] },

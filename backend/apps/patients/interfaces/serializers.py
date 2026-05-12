@@ -82,12 +82,13 @@ class PatientDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_last_visit(self, obj):
-        visit = obj.visits.order_by('-scheduled_at').first()
+        visit = obj.visits.order_by('-start_at').first()
         if not visit:
             return None
         return {
             'id': visit.id,
-            'scheduled_at': visit.scheduled_at,
+            'start_at': visit.start_at,
+            'end_at': visit.end_at,
             'status': visit.status,
         }
 
@@ -128,7 +129,8 @@ class VisitListSerializer(serializers.ModelSerializer):
         model = Visit
         fields = [
             'id',
-            'scheduled_at',
+            'start_at',
+            'end_at',
             'doctor',
             'reason',
             'teeth',
@@ -152,7 +154,8 @@ class VisitDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'patient_id',
-            'scheduled_at',
+            'start_at',
+            'end_at',
             'doctor',
             'reason',
             'teeth',
@@ -172,7 +175,8 @@ class VisitDetailSerializer(serializers.ModelSerializer):
 
 class VisitCreateSerializer(serializers.Serializer):
     doctor_id = serializers.IntegerField()
-    scheduled_at = serializers.DateTimeField()
+    start_at = serializers.DateTimeField()
+    end_at = serializers.DateTimeField()
     reason = serializers.CharField(required=False, default='', allow_blank=True)
     tooth_ids = serializers.ListField(
         child=serializers.IntegerField(),
@@ -187,7 +191,8 @@ class VisitCreateSerializer(serializers.Serializer):
 
 class VisitUpdateSerializer(serializers.Serializer):
     doctor_id = serializers.IntegerField(required=False)
-    scheduled_at = serializers.DateTimeField(required=False)
+    start_at = serializers.DateTimeField(required=False)
+    end_at = serializers.DateTimeField(required=False)
     reason = serializers.CharField(required=False, allow_blank=True)
     tooth_ids = serializers.ListField(
         child=serializers.IntegerField(),

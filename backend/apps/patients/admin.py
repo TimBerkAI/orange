@@ -43,7 +43,7 @@ class VisitToothInline(admin.TabularInline):
 
 @admin.register(Visit)
 class VisitAdmin(admin.ModelAdmin):
-    list_display = ['patient', 'doctor', 'scheduled_at', 'status']
+    list_display = ['patient', 'doctor', 'start_at', 'status']
     list_filter = ['status']
     raw_id_fields = ['patient', 'doctor']
     inlines = [VisitToothInline]

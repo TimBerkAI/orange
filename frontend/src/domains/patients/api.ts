@@ -41,7 +41,8 @@ export function createVisit(
   patientId: number,
   data: {
     doctor_id: number;
-    scheduled_at: string;
+    start_at: string;
+    end_at: string;
     reason?: string;
     tooth_ids?: number[];
     status?: string;
@@ -61,7 +62,8 @@ export function updateVisit(
   visitId: number,
   data: {
     doctor_id?: number;
-    scheduled_at?: string;
+    start_at?: string;
+    end_at?: string;
     reason?: string;
     tooth_ids?: number[];
     status?: string;

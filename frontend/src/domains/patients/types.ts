@@ -24,7 +24,8 @@ export interface Patient {
   updated_at?: string;
   last_visit?: {
     id: number;
-    scheduled_at: string;
+    start_at: string;
+    end_at: string;
     status: string;
   } | null;
 }
@@ -44,7 +45,8 @@ export interface DoctorBrief {
 export interface Visit {
   id: number;
   patient_id: number;
-  scheduled_at: string;
+  start_at: string;
+  end_at: string;
   doctor: DoctorBrief;
   reason: string;
   teeth: VisitTooth[];

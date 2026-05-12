@@ -217,7 +217,7 @@ function LeftPanel({
             value={patient.allergies || "Нет"}
             valueColor={patient.allergies ? colors.warning : undefined}
           />
-          <InfoRow label="Последний визит" value={formatDate(patient.last_visit?.scheduled_at)} />
+          <InfoRow label="Последний визит" value={formatDate(patient.last_visit?.start_at)} />
         </div>
       </div>
 
@@ -296,7 +296,7 @@ function LeftPanel({
                         color: isSelected ? colors.primaryDark : colors.textPrimary,
                       }}
                     >
-                      {formatDateTime(visit.scheduled_at)}
+                      {formatDateTime(visit.start_at)}
                     </span>
                     <StatusBadge status={visit.status} />
                   </div>
@@ -525,7 +525,7 @@ function RightPanel({
           )}
         </div>
 
-        <InfoRow label="Дата и время" value={formatDateTime(visit.scheduled_at)} />
+        <InfoRow label="Дата и время" value={formatDateTime(visit.start_at)} />
         <InfoRow label="Врач" value={visit.doctor.full_name} />
 
         {editing ? (

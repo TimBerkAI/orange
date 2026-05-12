@@ -195,7 +195,7 @@ export function PatientsPage() {
                   </Td>
                   <Td>
                     <span style={{ ...typography.caption, color: colors.textSecondary }}>
-                      {formatDate(patient.last_visit?.scheduled_at)}
+                      {formatDate(patient.last_visit?.start_at)}
                     </span>
                   </Td>
                 </tr>

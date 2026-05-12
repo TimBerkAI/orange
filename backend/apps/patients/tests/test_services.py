@@ -69,7 +69,8 @@ class TestVisitService:
         first_visit = service.create_visit(
             patient=patient,
             doctor=doctor,
-            scheduled_at='2026-06-02T10:00:00Z',
+            start_at='2026-06-02T10:00:00Z',
+            end_at='2026-06-02T10:30:00Z',
             reason='First',
         )
         odonto_svc.update_entry(
@@ -81,7 +82,8 @@ class TestVisitService:
         second_visit = service.create_visit(
             patient=patient,
             doctor=doctor,
-            scheduled_at='2026-06-03T10:00:00Z',
+            start_at='2026-06-03T10:00:00Z',
+            end_at='2026-06-03T10:30:00Z',
             reason='Second',
         )
 

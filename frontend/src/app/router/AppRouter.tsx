@@ -33,7 +33,14 @@ export function AppRouter() {
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="planning" element={<PlanningPage />} />
+          <Route
+            path="planning"
+            element={
+              <ProtectedRoute roles={["admin", "doctor"]}>
+                <PlanningPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="doctors"
             element={

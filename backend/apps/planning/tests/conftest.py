@@ -2,8 +2,9 @@ import pytest
 
 from apps.authorization.tests.factories import UserFactory, UserProfileFactory
 from apps.doctors.tests.factories import DoctorFactory
-from apps.patients.application.services import PatientService, VisitService
+from apps.patients.application.services import PatientService
 from apps.patients.infrastructure.models import Tooth
+from apps.planning.application.services import AppointmentService
 
 
 @pytest.fixture
@@ -18,14 +19,6 @@ def teeth(db):
 
 
 @pytest.fixture
-def patient(db, teeth):
-    user = UserFactory(patient=True)
-    UserProfileFactory(user=user)
-    service = PatientService()
-    return service.create_patient(user=user)
-
-
-@pytest.fixture
 def doctor_with_user(db):
     user = UserFactory(doctor=True)
     UserProfileFactory(user=user)
@@ -34,14 +27,30 @@ def doctor_with_user(db):
 
 
 @pytest.fixture
-def visit(db, patient, doctor_with_user, teeth):
+def patient(db, teeth):
+    user = UserFactory(patient=True)
+    UserProfileFactory(user=user)
+    service = PatientService()
+    return service.create_patient(user=user)
+
+
+@pytest.fixture
+def admin_user_for_planning(db):
+    user = UserFactory(admin=True)
+    UserProfileFactory(user=user)
+    return user
+
+
+@pytest.fixture
+def appointment(db, teeth, doctor_with_user, admin_user_for_planning):
     doctor, _ = doctor_with_user
-    service = VisitService()
-    return service.create_visit(
-        patient=patient,
-        doctor=doctor,
-        start_at='2026-06-01T10:00:00Z',
-        end_at='2026-06-01T10:30:00Z',
+    service = AppointmentService()
+    return service.create_appointment(
+        phone='+79001234567',
+        patient_name='Иванов Иван Иванович',
         reason='Консультация',
-        tooth_ids=[teeth[0].id, teeth[1].id],
+        doctor_id=doctor.id,
+        start_at='2026-07-01T10:00:00Z',
+        end_at='2026-07-01T10:30:00Z',
+        created_by=admin_user_for_planning,
     )

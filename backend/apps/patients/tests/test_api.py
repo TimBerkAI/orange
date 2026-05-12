@@ -164,7 +164,8 @@ class TestVisitListCreate:
             self._url(patient.id),
             {
                 'doctor_id': doctor.id,
-                'scheduled_at': '2026-07-01T10:00:00Z',
+                'start_at': '2026-07-01T10:00:00Z',
+                'end_at': '2026-07-01T10:30:00Z',
                 'reason': 'Осмотр',
                 'tooth_ids': [teeth[0].id],
             },
@@ -187,7 +188,8 @@ class TestVisitListCreate:
             self._url(patient.id),
             {
                 'doctor_id': doctor.id,
-                'scheduled_at': '2026-07-01T10:00:00Z',
+                'start_at': '2026-07-01T10:00:00Z',
+                'end_at': '2026-07-01T10:30:00Z',
                 'reason': 'Осмотр',
             },
             format='json',
@@ -210,7 +212,8 @@ class TestVisitListCreate:
             self._url(patient.id),
             {
                 'doctor_id': other_doctor.id,
-                'scheduled_at': '2026-07-01T10:00:00Z',
+                'start_at': '2026-07-01T10:00:00Z',
+                'end_at': '2026-07-01T10:30:00Z',
             },
             format='json',
         )

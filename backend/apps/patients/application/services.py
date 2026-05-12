@@ -79,7 +79,8 @@ class VisitService:
         *,
         patient,
         doctor,
-        scheduled_at,
+        start_at,
+        end_at,
         reason,
         tooth_ids=None,
         status='planned',
@@ -87,7 +88,8 @@ class VisitService:
         visit = self.visit_repo.create(
             patient=patient,
             doctor=doctor,
-            scheduled_at=scheduled_at,
+            start_at=start_at,
+            end_at=end_at,
             reason=reason,
             status=status,
         )
