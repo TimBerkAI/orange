@@ -1,4 +1,9 @@
+import datetime
+
 from django.db import transaction
+from django.db.models import Count
+from django.db.models.functions import TruncDate
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -310,6 +315,47 @@ class VisitDetailView(APIView):
         if user.role == Role.ADMIN:
             return True
         return visit.doctor.user_id == user.id
+
+
+class VisitStatsView(APIView):
+    permission_classes = [IsAdminOrDoctor]
+
+    def get(self, request):
+        period = request.query_params.get('period', 'week')
+        today = timezone.now().date()
+
+        if period == 'month':
+            date_from = today - datetime.timedelta(days=29)
+        else:
+            date_from = today - datetime.timedelta(days=6)
+
+        from apps.patients.infrastructure.models import Visit as VisitModel
+
+        qs = VisitModel.objects.filter(start_at__date__gte=date_from, start_at__date__lte=today)
+
+        if request.user.role == Role.DOCTOR:
+            doctor = Doctor.objects.filter(user_id=request.user.id).first()
+            if doctor:
+                qs = qs.filter(doctor=doctor)
+            else:
+                qs = qs.none()
+
+        rows = (
+            qs.annotate(date=TruncDate('start_at'))
+            .values('date')
+            .annotate(count=Count('id'))
+            .order_by('date')
+        )
+
+        date_map = {row['date'].isoformat(): row['count'] for row in rows}
+
+        result = []
+        cursor = date_from
+        while cursor <= today:
+            result.append({'date': cursor.isoformat(), 'count': date_map.get(cursor.isoformat(), 0)})
+            cursor += datetime.timedelta(days=1)
+
+        return Response(result)
 
 
 class OdontogramView(APIView):

@@ -44,6 +44,18 @@ class SpecializationListView(APIView):
 class SpecializationDetailView(APIView):
     permission_classes = [IsAdmin]
 
+    def patch(self, request, specialization_id):
+        from apps.doctors.infrastructure.models import Specialization
+        spec = Specialization.objects.filter(pk=specialization_id).first()
+        if not spec:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = SpecializationSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        for attr, value in serializer.validated_data.items():
+            setattr(spec, attr, value)
+        spec.save()
+        return Response(SpecializationSerializer(spec).data)
+
     def delete(self, request, specialization_id):
         repo = SpecializationRepository()
         deleted = repo.delete(specialization_id)

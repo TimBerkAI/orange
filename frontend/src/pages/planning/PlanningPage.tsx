@@ -159,6 +159,12 @@ export function PlanningPage() {
 
   const totalHours = MAX_HOUR - MIN_HOUR;
 
+  const selectedDoctorWeekdays = useMemo(() => {
+    if (!filterDoctorId) return null;
+    const doc = doctors.find((d) => d.id === filterDoctorId);
+    return doc?.preferred_weekdays ?? null;
+  }, [filterDoctorId, doctors]);
+
   return (
     <div
       style={{
@@ -302,6 +308,7 @@ export function PlanningPage() {
             <div style={{ width: 56, flexShrink: 0 }} />
             {weekDays.map((day, idx) => {
               const isToday = isSameDay(day, today);
+              const isNonWorking = selectedDoctorWeekdays !== null && !selectedDoctorWeekdays.includes(idx);
               return (
                 <div
                   key={idx}
@@ -311,7 +318,7 @@ export function PlanningPage() {
                     padding: `${spacing.sm} 0`,
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.borderLight}`,
-                    backgroundColor: isToday ? colors.primaryLight : colors.surface,
+                    backgroundColor: isNonWorking ? colors.borderLight : isToday ? colors.primaryLight : colors.surface,
                   }}
                 >
                   <div
@@ -364,6 +371,7 @@ export function PlanningPage() {
             {weekDays.map((day, dayIdx) => {
               const dayAppts = appointments.filter((a) => isSameDay(new Date(a.start_at), day));
               const isToday = isSameDay(day, today);
+              const isNonWorking = selectedDoctorWeekdays !== null && !selectedDoctorWeekdays.includes(dayIdx);
 
               return (
                 <div
@@ -372,7 +380,7 @@ export function PlanningPage() {
                     flex: 1,
                     position: "relative",
                     borderLeft: `1px solid ${colors.borderLight}`,
-                    backgroundColor: isToday ? "rgba(232,134,45,0.02)" : "transparent",
+                    backgroundColor: isNonWorking ? "rgba(0,0,0,0.03)" : isToday ? "rgba(232,134,45,0.02)" : "transparent",
                   }}
                 >
                   {Array.from({ length: totalHours }, (_, i) => (

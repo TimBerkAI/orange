@@ -31,3 +31,41 @@ export function refreshToken(refresh: string): Promise<{ access: string }> {
 export function searchUsers(search: string): Promise<User[]> {
   return apiFetch<User[]>(`/auth/users/?search=${encodeURIComponent(search)}`);
 }
+
+export function listUsers(): Promise<User[]> {
+  return apiFetch<User[]>("/auth/users/");
+}
+
+export function createUser(data: {
+  email: string;
+  password?: string;
+  role: string;
+  first_name: string;
+  last_name: string;
+  patronymic?: string;
+  phone?: string;
+  date_of_birth?: string | null;
+}): Promise<User> {
+  return apiFetch<User>("/auth/users/", { method: "POST", body: JSON.stringify(data) });
+}
+
+export function updateUser(
+  id: number,
+  data: {
+    email?: string;
+    role?: string;
+    is_active?: boolean;
+    password?: string;
+    first_name?: string;
+    last_name?: string;
+    patronymic?: string;
+    phone?: string;
+    date_of_birth?: string | null;
+  },
+): Promise<User> {
+  return apiFetch<User>(`/auth/users/${id}/`, { method: "PATCH", body: JSON.stringify(data) });
+}
+
+export function deleteUser(id: number): Promise<void> {
+  return apiFetch<void>(`/auth/users/${id}/`, { method: "DELETE" });
+}

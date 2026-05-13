@@ -44,6 +44,16 @@ export function createSpecialization(data: { name: string; description: string }
   return apiFetch("/doctors/specializations/", { method: "POST", body: JSON.stringify(data) });
 }
 
+export function updateSpecialization(
+  id: number,
+  data: { name?: string; description?: string },
+): Promise<Specialization> {
+  return apiFetch(`/doctors/specializations/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
 export function deleteSpecialization(id: number): Promise<void> {
   return apiFetch(`/doctors/specializations/${id}/`, { method: "DELETE" });
 }

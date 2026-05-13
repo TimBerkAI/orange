@@ -3,6 +3,7 @@ from django.urls import path
 from apps.planning.interfaces.views import (
     AppointmentDetailView,
     AppointmentListCreateView,
+    DashboardStatsView,
 )
 
 app_name = 'planning'
@@ -18,4 +19,5 @@ urlpatterns = [
         AppointmentDetailView.as_view(),
         name='appointment-detail',
     ),
+    path('stats/', DashboardStatsView.as_view(), name='dashboard-stats'),
 ]

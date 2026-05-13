@@ -1,9 +1,14 @@
+import datetime
+
+from django.db.models import Count, Q
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.authorization.domain.roles import Role
 from apps.authorization.interfaces.permissions import IsAdminOrDoctor
+from apps.doctors.infrastructure.models import Doctor
 from apps.planning.application.services import AppointmentService
 from apps.planning.interfaces.serializers import (
     AppointmentCreateSerializer,
@@ -131,3 +136,37 @@ class AppointmentDetailView(APIView):
         if user.role == Role.ADMIN:
             return True
         return appointment.visit.doctor.user_id == user.id
+
+
+class DashboardStatsView(APIView):
+    permission_classes = [IsAdminOrDoctor]
+
+    def get(self, request):
+        now = timezone.now()
+        today = now.date()
+        tomorrow = today + datetime.timedelta(days=1)
+
+        from apps.patients.infrastructure.models import Visit
+
+        qs = Visit.objects.all()
+        if request.user.role == Role.DOCTOR:
+            doctor = Doctor.objects.filter(user_id=request.user.id).first()
+            if doctor:
+                qs = qs.filter(doctor=doctor)
+            else:
+                qs = qs.none()
+
+        today_confirmed = qs.filter(
+            start_at__date=today,
+            status='confirmed',
+        ).count()
+
+        tomorrow_pending = qs.filter(
+            start_at__date=tomorrow,
+            status='planned',
+        ).count()
+
+        return Response({
+            'today_confirmed': today_confirmed,
+            'tomorrow_pending': tomorrow_pending,
+        })

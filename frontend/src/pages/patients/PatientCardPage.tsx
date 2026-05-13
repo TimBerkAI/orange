@@ -4,8 +4,10 @@ import { useAuth } from "@/domains/authorization/application/AuthContext";
 import { Button } from "@/shared/ui/Button";
 import { Spinner } from "@/shared/ui/Spinner";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
+import { UserEditModal } from "@/shared/ui/UserEditModal";
 import { useIsMobile } from "@/shared/hooks/useMediaQuery";
 import { colors, radius, shadows, spacing, typography } from "@/shared/config/theme";
+import type { User } from "@/shared/types";
 import {
   deleteVisit,
   getOdontogram,
@@ -76,6 +78,7 @@ export function PatientCardPage() {
   const [odontogram, setOdontogram] = useState<OdontogramType | null>(null);
   const [soap, setSoap] = useState<SoapNote | null>(null);
   const [loadingVisit, setLoadingVisit] = useState(false);
+  const [editUserOpen, setEditUserOpen] = useState(false);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -162,6 +165,21 @@ export function PatientCardPage() {
 
   const selectedVisit = visits.find((v) => v.id === selectedVisitId) ?? null;
 
+  const patientAsUser: User | null = patient ? {
+    id: patient.user.id,
+    email: patient.user.email,
+    role: "patient",
+    is_active: true,
+    date_joined: "",
+    profile: {
+      first_name: patient.user.first_name,
+      last_name: patient.user.last_name,
+      patronymic: patient.user.patronymic,
+      phone: patient.user.phone,
+      date_of_birth: patient.user.date_of_birth,
+    },
+  } : null;
+
   return (
     <div
       style={{
@@ -178,6 +196,29 @@ export function PatientCardPage() {
         selectedVisitId={selectedVisitId}
         onSelectVisit={selectVisit}
         isMobile={isMobile}
+        isAdmin={isAdmin}
+        onEditUser={() => setEditUserOpen(true)}
+      />
+
+      <UserEditModal
+        open={editUserOpen}
+        user={patientAsUser}
+        onClose={() => setEditUserOpen(false)}
+        onSaved={(updated) => {
+          setPatient((p) => p ? {
+            ...p,
+            user: {
+              ...p.user,
+              email: updated.email,
+              first_name: updated.profile?.first_name ?? p.user.first_name,
+              last_name: updated.profile?.last_name ?? p.user.last_name,
+              patronymic: updated.profile?.patronymic ?? p.user.patronymic,
+              phone: updated.profile?.phone ?? p.user.phone,
+              date_of_birth: updated.profile?.date_of_birth ?? p.user.date_of_birth,
+            },
+          } : null);
+          setEditUserOpen(false);
+        }}
       />
 
       <CenterPanel
@@ -205,12 +246,16 @@ function LeftPanel({
   selectedVisitId,
   onSelectVisit,
   isMobile,
+  isAdmin,
+  onEditUser,
 }: {
   patient: Patient;
   visits: Visit[];
   selectedVisitId: number | null;
   onSelectVisit: (id: number) => void;
   isMobile: boolean;
+  isAdmin: boolean;
+  onEditUser: () => void;
 }) {
   return (
     <div
@@ -232,8 +277,28 @@ function LeftPanel({
           padding: spacing.md,
         }}
       >
-        <div style={{ ...typography.subheading, color: colors.textPrimary, marginBottom: spacing.sm }}>
-          {patient.full_name}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: spacing.sm }}>
+          <div style={{ ...typography.subheading, color: colors.textPrimary }}>
+            {patient.full_name}
+          </div>
+          {isAdmin && (
+            <button
+              onClick={onEditUser}
+              style={{
+                background: "none",
+                border: `1px solid ${colors.border}`,
+                borderRadius: radius.sm,
+                padding: "3px 8px",
+                cursor: "pointer",
+                fontSize: "11px",
+                color: colors.textSecondary,
+                flexShrink: 0,
+                marginLeft: spacing.sm,
+              }}
+            >
+              Изменить
+            </button>
+          )}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <InfoRow label="Email" value={patient.user.email} />

@@ -53,6 +53,15 @@ function ClipboardIcon() {
   );
 }
 
+function PersonIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M6 20v-2a6 6 0 0 1 12 0v2" />
+    </svg>
+  );
+}
+
 function MenuIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -86,6 +95,7 @@ const navItems: NavItem[] = [
   { to: "/doctors", label: "Врачи", icon: <StethoscopeIcon />, roles: ["admin", "doctor"] },
   { to: "/specializations", label: "Специальности", icon: <ClipboardIcon />, roles: ["admin"] },
   { to: "/patients", label: "Пациенты", icon: <UsersIcon />, roles: ["admin", "doctor"] },
+  { to: "/users", label: "Пользователи", icon: <PersonIcon />, roles: ["admin"] },
 ];
 
 function SidebarLink({ to, label, icon, collapsed }: NavItem & { collapsed: boolean }) {
@@ -235,39 +245,14 @@ export function DashboardLayout() {
         style={{
           padding: collapsed && !isMobile ? `${spacing.sm} ${spacing.xs}` : spacing.md,
           borderTop: `1px solid ${colors.borderLight}`,
-          overflow: "hidden",
+          overflow: "visible",
           display: "flex",
           flexDirection: "column",
           gap: spacing.xs,
+          position: "relative",
+          zIndex: 101,
         }}
       >
-        {!isMobile && (
-          <button
-            onClick={toggleCollapse}
-            title={collapsed ? "Развернуть меню" : "Свернуть меню"}
-            style={{
-              background: "none",
-              border: `1px solid ${colors.borderLight}`,
-              borderRadius: radius.md,
-              padding: "6px",
-              cursor: "pointer",
-              color: colors.textSecondary,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: collapsed ? 36 : "100%",
-              margin: collapsed ? "0 auto" : 0,
-              transition: "all 0.15s ease",
-            }}
-          >
-            {collapsed ? <ChevronRightIcon /> : (
-              <span style={{ display: "flex", alignItems: "center", gap: spacing.xs, fontSize: "13px" }}>
-                <ChevronLeftIcon />
-                Свернуть
-              </span>
-            )}
-          </button>
-        )}
         {showLabels ? (
           <UserIndicator />
         ) : (
@@ -289,6 +274,30 @@ export function DashboardLayout() {
               <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
             </svg>
           </div>
+        )}
+        {!isMobile && (
+          <button
+            onClick={toggleCollapse}
+            title={collapsed ? "Развернуть меню" : "Свернуть меню"}
+            style={{
+              background: "none",
+              border: `1px solid ${colors.borderLight}`,
+              borderRadius: radius.md,
+              padding: "6px",
+              cursor: "pointer",
+              color: colors.textSecondary,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: collapsed ? 36 : 36,
+              height: 36,
+              margin: "0 auto",
+              transition: "all 0.15s ease",
+              flexShrink: 0,
+            }}
+          >
+            {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+          </button>
         )}
       </div>
     </aside>

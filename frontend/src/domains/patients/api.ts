@@ -115,3 +115,12 @@ export function updateSoapNote(
     body: JSON.stringify(data),
   });
 }
+
+export interface VisitStatEntry {
+  date: string;
+  count: number;
+}
+
+export function getVisitStats(period: "week" | "month"): Promise<VisitStatEntry[]> {
+  return apiFetch<VisitStatEntry[]>(`/patients/stats/?period=${period}`);
+}

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/domains/authorization/application/AuthContext";
 import { PageHeader } from "@/shared/ui/PageHeader";
+import { UserEditModal } from "@/shared/ui/UserEditModal";
+import type { User } from "@/shared/types";
 
 export function DoctorsPage() {
   const { role } = useAuth();
@@ -152,6 +154,7 @@ function AdminDoctorsView() {
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [modalOpen, setModalOpen] = useState(false);
   const [editDoctor, setEditDoctor] = useState<Doctor | null>(null);
+  const [editUserDoctor, setEditUserDoctor] = useState<Doctor | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadDoctors = useCallback((q?: string) => {
@@ -331,30 +334,42 @@ function AdminDoctorsView() {
                     <WeekdayBadges days={doctor.preferred_weekdays} />
                   </Td>
                   <Td>
-                    <button
-                      type="button"
-                      onClick={() => openEdit(doctor)}
-                      style={{
-                        background: "none",
-                        border: `1px solid ${colors.border}`,
-                        borderRadius: radius.md,
-                        padding: "5px 12px",
-                        cursor: "pointer",
-                        fontSize: typography.caption.fontSize,
-                        color: colors.textSecondary,
-                        transition: "all 0.15s ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLButtonElement).style.borderColor = colors.primary;
-                        (e.currentTarget as HTMLButtonElement).style.color = colors.primary;
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLButtonElement).style.borderColor = colors.border;
-                        (e.currentTarget as HTMLButtonElement).style.color = colors.textSecondary;
-                      }}
-                    >
-                      Изменить
-                    </button>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <button
+                        type="button"
+                        onClick={() => openEdit(doctor)}
+                        style={{
+                          background: "none",
+                          border: `1px solid ${colors.border}`,
+                          borderRadius: radius.md,
+                          padding: "5px 12px",
+                          cursor: "pointer",
+                          fontSize: typography.caption.fontSize,
+                          color: colors.textSecondary,
+                          transition: "all 0.15s ease",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Изменить
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditUserDoctor(doctor)}
+                        style={{
+                          background: "none",
+                          border: `1px solid ${colors.border}`,
+                          borderRadius: radius.md,
+                          padding: "5px 12px",
+                          cursor: "pointer",
+                          fontSize: typography.caption.fontSize,
+                          color: colors.textSecondary,
+                          transition: "all 0.15s ease",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Профиль
+                      </button>
+                    </div>
                   </Td>
                 </tr>
               ))
@@ -370,6 +385,38 @@ function AdminDoctorsView() {
         onDelete={editDoctor ? handleDelete : undefined}
         doctor={editDoctor}
         specializations={specializations}
+      />
+
+      <UserEditModal
+        open={!!editUserDoctor}
+        user={editUserDoctor ? {
+          id: editUserDoctor.user.id,
+          email: editUserDoctor.user.email,
+          role: "doctor",
+          is_active: true,
+          date_joined: "",
+          profile: {
+            first_name: editUserDoctor.user.first_name,
+            last_name: editUserDoctor.user.last_name,
+            patronymic: editUserDoctor.user.patronymic,
+            phone: "",
+            date_of_birth: null,
+          },
+        } as User : null}
+        onClose={() => setEditUserDoctor(null)}
+        onSaved={(updated) => {
+          setDoctors((prev) => prev.map((d) => d.id === editUserDoctor?.id ? {
+            ...d,
+            user: {
+              ...d.user,
+              email: updated.email,
+              first_name: updated.profile?.first_name ?? d.user.first_name,
+              last_name: updated.profile?.last_name ?? d.user.last_name,
+              patronymic: updated.profile?.patronymic ?? d.user.patronymic,
+            },
+          } : d));
+          setEditUserDoctor(null);
+        }}
       />
     </div>
   );

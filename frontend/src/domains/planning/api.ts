@@ -42,3 +42,12 @@ export function updateAppointment(
 export function deleteAppointment(id: number): Promise<void> {
   return apiFetch(`/planning/appointments/${id}/`, { method: "DELETE" });
 }
+
+export interface DashboardStats {
+  today_confirmed: number;
+  tomorrow_pending: number;
+}
+
+export function getDashboardStats(): Promise<DashboardStats> {
+  return apiFetch<DashboardStats>("/planning/stats/");
+}

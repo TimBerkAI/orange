@@ -10,6 +10,7 @@ import { PatientCardPage } from "@/pages/patients/PatientCardPage";
 import { PatientsPage } from "@/pages/patients/PatientsPage";
 import { ProfilePage } from "@/pages/profile/ProfilePage";
 import { SpecializationsPage } from "@/pages/specializations/SpecializationsPage";
+import { UsersPage } from "@/pages/users/UsersPage";
 
 export function AppRouter() {
   return (
@@ -70,6 +71,14 @@ export function AppRouter() {
             element={
               <ProtectedRoute roles={["admin", "doctor"]}>
                 <PatientCardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="users"
+            element={
+              <ProtectedRoute roles={["admin"]}>
+                <UsersPage />
               </ProtectedRoute>
             }
           />

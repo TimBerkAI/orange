@@ -2,22 +2,117 @@ import { type FormEvent, useEffect, useState } from "react";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
+import { Modal } from "@/shared/ui/Modal";
 import { Spinner } from "@/shared/ui/Spinner";
 import { colors, radius, shadows, spacing, typography } from "@/shared/config/theme";
 import {
   createSpecialization,
   deleteSpecialization,
   listSpecializations,
+  updateSpecialization,
 } from "@/domains/doctors/api";
 import type { Specialization } from "@/domains/doctors/types";
+
+function SpecializationModal({
+  open,
+  spec,
+  onClose,
+  onSaved,
+}: {
+  open: boolean;
+  spec: Specialization | null;
+  onClose: () => void;
+  onSaved: (s: Specialization) => void;
+}) {
+  const isEdit = !!spec;
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setName(spec?.name ?? "");
+      setDescription(spec?.description ?? "");
+      setError("");
+    }
+  }, [open, spec]);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    setError("");
+    try {
+      const payload = { name: name.trim(), description: description.trim() };
+      const result = isEdit
+        ? await updateSpecialization(spec!.id, payload)
+        : await createSpecialization(payload);
+      onSaved(result);
+    } catch (err: unknown) {
+      const detail = (err as Record<string, unknown>)?.detail;
+      const nameErr = (err as Record<string, unknown>)?.name;
+      setError(
+        typeof detail === "string"
+          ? detail
+          : Array.isArray(nameErr)
+            ? String(nameErr[0])
+            : "Ошибка при сохранении",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title={isEdit ? "Редактировать специальность" : "Добавить специальность"} width={440}>
+      <form
+        onSubmit={(e) => void handleSubmit(e)}
+        style={{ display: "flex", flexDirection: "column", gap: spacing.md }}
+      >
+        <Input
+          label="Название"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Например: Терапевт"
+          required
+        />
+        <Input
+          label="Описание"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Краткое описание (необязательно)"
+        />
+        {error && (
+          <div
+            style={{
+              padding: `${spacing.sm} ${spacing.md}`,
+              backgroundColor: colors.dangerLight,
+              color: colors.danger,
+              borderRadius: radius.md,
+              fontSize: typography.caption.fontSize,
+            }}
+          >
+            {error}
+          </div>
+        )}
+        <div style={{ display: "flex", gap: spacing.sm, justifyContent: "flex-end" }}>
+          <Button type="button" variant="secondary" onClick={onClose}>Отмена</Button>
+          <Button type="submit" loading={saving} disabled={!name.trim()}>
+            {isEdit ? "Сохранить" : "Добавить"}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
 
 export function SpecializationsPage() {
   const [specs, setSpecs] = useState<Specialization[]>([]);
   const [loading, setLoading] = useState(true);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [adding, setAdding] = useState(false);
-  const [addError, setAddError] = useState("");
+  const [search, setSearch] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editSpec, setEditSpec] = useState<Specialization | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -27,30 +122,9 @@ export function SpecializationsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleAdd = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setAdding(true);
-    setAddError("");
-    try {
-      const spec = await createSpecialization({ name: name.trim(), description: description.trim() });
-      setSpecs((prev) => [...prev, spec]);
-      setName("");
-      setDescription("");
-    } catch (err: unknown) {
-      const detail = (err as Record<string, unknown>)?.detail;
-      const nameErr = (err as Record<string, unknown>)?.name;
-      setAddError(
-        typeof detail === "string"
-          ? detail
-          : Array.isArray(nameErr)
-            ? String(nameErr[0])
-            : "Ошибка при добавлении",
-      );
-    } finally {
-      setAdding(false);
-    }
-  };
+  const filtered = specs.filter(
+    (s) => !search || s.name.toLowerCase().includes(search.toLowerCase()),
+  );
 
   const handleDelete = async (id: number) => {
     if (confirmDeleteId !== id) {
@@ -69,67 +143,38 @@ export function SpecializationsPage() {
     }
   };
 
+  const handleSaved = (result: Specialization) => {
+    setSpecs((prev) => {
+      const idx = prev.findIndex((s) => s.id === result.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = result;
+        return next;
+      }
+      return [...prev, result];
+    });
+    setModalOpen(false);
+    setEditSpec(null);
+  };
+
   return (
     <div>
-      <PageHeader title="Специальности" subtitle="Справочник медицинских специальностей" />
+      <PageHeader
+        title="Специальности"
+        subtitle="Справочник медицинских специальностей"
+        actions={
+          <Button onClick={() => { setEditSpec(null); setModalOpen(true); }}>
+            <PlusIcon /> Добавить
+          </Button>
+        }
+      />
 
-      <div
-        style={{
-          backgroundColor: colors.surface,
-          borderRadius: radius.lg,
-          border: `1px solid ${colors.border}`,
-          boxShadow: shadows.sm,
-          padding: spacing.lg,
-          marginBottom: spacing.lg,
-          maxWidth: 560,
-        }}
-      >
-        <div
-          style={{
-            ...typography.body,
-            fontWeight: "500",
-            color: colors.textPrimary,
-            marginBottom: spacing.md,
-          }}
-        >
-          Добавить специальность
-        </div>
-        <form
-          onSubmit={(e) => void handleAdd(e)}
-          style={{ display: "flex", flexDirection: "column", gap: spacing.md }}
-        >
-          <Input
-            label="Название"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Например: Терапевт"
-            required
-          />
-          <Input
-            label="Описание"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Краткое описание (необязательно)"
-          />
-          {addError && (
-            <div
-              style={{
-                padding: `${spacing.sm} ${spacing.md}`,
-                backgroundColor: colors.dangerLight,
-                color: colors.danger,
-                borderRadius: radius.md,
-                fontSize: typography.caption.fontSize,
-              }}
-            >
-              {addError}
-            </div>
-          )}
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <Button type="submit" loading={adding} disabled={!name.trim()}>
-              Добавить
-            </Button>
-          </div>
-        </form>
+      <div style={{ marginBottom: spacing.md, maxWidth: 360 }}>
+        <Input
+          placeholder="Поиск по названию..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       {loading ? (
@@ -146,7 +191,7 @@ export function SpecializationsPage() {
             overflow: "hidden",
           }}
         >
-          {specs.length === 0 ? (
+          {filtered.length === 0 ? (
             <div
               style={{
                 textAlign: "center",
@@ -155,39 +200,23 @@ export function SpecializationsPage() {
                 ...typography.body,
               }}
             >
-              Специальности не добавлены
+              {search ? "Специальности не найдены" : "Специальности не добавлены"}
             </div>
           ) : (
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ backgroundColor: colors.borderLight }}>
-                  <th
-                    style={{
-                      padding: `${spacing.sm} ${spacing.md}`,
-                      textAlign: "left",
-                      fontSize: typography.caption.fontSize,
-                      fontWeight: "600",
-                      color: colors.textSecondary,
-                    }}
-                  >
+                  <th style={{ padding: `${spacing.sm} ${spacing.md}`, textAlign: "left", fontSize: typography.caption.fontSize, fontWeight: "600", color: colors.textSecondary }}>
                     Название
                   </th>
-                  <th
-                    style={{
-                      padding: `${spacing.sm} ${spacing.md}`,
-                      textAlign: "left",
-                      fontSize: typography.caption.fontSize,
-                      fontWeight: "600",
-                      color: colors.textSecondary,
-                    }}
-                  >
+                  <th style={{ padding: `${spacing.sm} ${spacing.md}`, textAlign: "left", fontSize: typography.caption.fontSize, fontWeight: "600", color: colors.textSecondary }}>
                     Описание
                   </th>
-                  <th style={{ width: 140 }}></th>
+                  <th style={{ width: 200 }} />
                 </tr>
               </thead>
               <tbody>
-                {specs.map((spec, idx) => (
+                {filtered.map((spec, idx) => (
                   <tr
                     key={spec.id}
                     style={{
@@ -195,21 +224,14 @@ export function SpecializationsPage() {
                       transition: "background-color 0.1s ease",
                     }}
                     onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLTableRowElement).style.backgroundColor =
-                        colors.surfaceHover;
+                      (e.currentTarget as HTMLTableRowElement).style.backgroundColor = colors.surfaceHover;
                     }}
                     onMouseLeave={(e) => {
                       (e.currentTarget as HTMLTableRowElement).style.backgroundColor = "transparent";
                     }}
                   >
                     <td style={{ padding: `${spacing.md} ${spacing.md}` }}>
-                      <span
-                        style={{
-                          ...typography.body,
-                          fontWeight: "500",
-                          color: colors.textPrimary,
-                        }}
-                      >
+                      <span style={{ ...typography.body, fontWeight: "500", color: colors.textPrimary }}>
                         {spec.name}
                       </span>
                     </td>
@@ -219,40 +241,57 @@ export function SpecializationsPage() {
                       </span>
                     </td>
                     <td style={{ padding: `${spacing.sm} ${spacing.md}`, textAlign: "right" }}>
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(spec.id)}
-                        disabled={deletingId === spec.id}
-                        style={{
-                          background: "none",
-                          border: `1px solid ${confirmDeleteId === spec.id ? colors.danger : colors.border}`,
-                          borderRadius: radius.md,
-                          padding: "5px 12px",
-                          cursor: "pointer",
-                          fontSize: typography.caption.fontSize,
-                          color: confirmDeleteId === spec.id ? colors.danger : colors.textSecondary,
-                          transition: "all 0.15s ease",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {confirmDeleteId === spec.id ? "Подтвердить" : "Удалить"}
-                      </button>
-                      {confirmDeleteId === spec.id && (
+                      <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
                         <button
                           type="button"
-                          onClick={() => setConfirmDeleteId(null)}
+                          onClick={() => { setEditSpec(spec); setModalOpen(true); }}
                           style={{
                             background: "none",
-                            border: "none",
+                            border: `1px solid ${colors.border}`,
+                            borderRadius: radius.md,
+                            padding: "5px 12px",
                             cursor: "pointer",
                             fontSize: typography.caption.fontSize,
-                            color: colors.textMuted,
-                            marginLeft: "6px",
+                            color: colors.textSecondary,
+                            transition: "all 0.15s ease",
                           }}
                         >
-                          Отмена
+                          Изменить
                         </button>
-                      )}
+                        <button
+                          type="button"
+                          onClick={() => void handleDelete(spec.id)}
+                          disabled={deletingId === spec.id}
+                          style={{
+                            background: "none",
+                            border: `1px solid ${confirmDeleteId === spec.id ? colors.danger : colors.border}`,
+                            borderRadius: radius.md,
+                            padding: "5px 12px",
+                            cursor: "pointer",
+                            fontSize: typography.caption.fontSize,
+                            color: confirmDeleteId === spec.id ? colors.danger : colors.textSecondary,
+                            transition: "all 0.15s ease",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {confirmDeleteId === spec.id ? "Подтвердить" : "Удалить"}
+                        </button>
+                        {confirmDeleteId === spec.id && (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(null)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              fontSize: typography.caption.fontSize,
+                              color: colors.textMuted,
+                            }}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -261,6 +300,21 @@ export function SpecializationsPage() {
           )}
         </div>
       )}
+
+      <SpecializationModal
+        open={modalOpen}
+        spec={editSpec}
+        onClose={() => { setModalOpen(false); setEditSpec(null); }}
+        onSaved={handleSaved}
+      />
     </div>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
   );
 }

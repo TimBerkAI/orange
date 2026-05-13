@@ -8,6 +8,7 @@ from apps.patients.interfaces.views import (
     ToothListView,
     VisitDetailView,
     VisitListCreateView,
+    VisitStatsView,
 )
 
 app_name = 'patients'
@@ -32,4 +33,5 @@ urlpatterns = [
         SoapNoteView.as_view(),
         name='soap-note',
     ),
+    path('stats/', VisitStatsView.as_view(), name='visit-stats'),
 ]

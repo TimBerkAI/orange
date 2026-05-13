@@ -36,6 +36,18 @@ class AppointmentService:
         if not doctor:
             raise ValueError('Врач не найден')
 
+        weekday = start_at.weekday()
+        if doctor.preferred_weekdays and weekday not in doctor.preferred_weekdays:
+            from apps.doctors.domain.weekdays import Weekday
+            weekday_names = {
+                0: 'понедельник', 1: 'вторник', 2: 'среду', 3: 'четверг',
+                4: 'пятницу', 5: 'субботу', 6: 'воскресенье',
+            }
+            raise ValueError(
+                f'Врач не принимает в {weekday_names.get(weekday, str(weekday))}. '
+                f'Рабочие дни: {", ".join(weekday_names.get(d, str(d)) for d in sorted(doctor.preferred_weekdays))}'
+            )
+
         if self.appointment_repo.check_doctor_overlap(doctor_id, start_at, end_at):
             raise ValueError('У врача уже есть запись на это время')
 
