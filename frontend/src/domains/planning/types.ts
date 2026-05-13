@@ -19,7 +19,7 @@ export interface Appointment {
   start_at: string;
   end_at: string;
   visit_id: number;
-  visit_status: "planned" | "confirmed" | "cancelled";
+  visit_status: "planned" | "confirmed"| "completed" | "cancelled";
   created_at: string;
   created_by_email?: string | null;
   updated_at?: string;

@@ -1,18 +1,21 @@
 export const VISIT_STATUS_LABELS: Record<string, string> = {
   planned: "Запланировано",
   confirmed: "Подтверждено",
+  completed: "Завершено",
   cancelled: "Отменено",
 };
 
 export const VISIT_STATUS_BG: Record<string, string> = {
   planned: "#DBEAFE",
-  confirmed: "#D1FAE5",
+  confirmed: "#fff3e8",
+  completed: "#D1FAE5",
   cancelled: "#FEE2E2",
 };
 
 export const VISIT_STATUS_FG: Record<string, string> = {
   planned: "#1E40AF",
-  confirmed: "#065F46",
+  confirmed: "#F97316",
+  completed: "#065F46",
   cancelled: "#991B1B",
 };
 

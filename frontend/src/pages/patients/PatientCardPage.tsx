@@ -678,6 +678,7 @@ function RightPanel({
               >
                 <option value="planned">Запланировано</option>
                 <option value="confirmed">Подтверждено</option>
+                <option value="completed">Завершено</option>
                 <option value="cancelled">Отменено</option>
               </select>
             </div>

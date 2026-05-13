@@ -44,6 +44,7 @@ class PatientStatus(StrEnum):
 class VisitStatus(StrEnum):
     PLANNED = 'planned'
     CONFIRMED = 'confirmed'
+    COMPLETED = 'completed'
     CANCELLED = 'cancelled'
 
     @classmethod
@@ -54,5 +55,6 @@ class VisitStatus(StrEnum):
         return {
             'planned': 'Запланировано',
             'confirmed': 'Подтверждено',
+            'completed': 'Завершено',
             'cancelled': 'Отменено',
         }[self.value]

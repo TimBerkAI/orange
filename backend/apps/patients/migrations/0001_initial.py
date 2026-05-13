@@ -49,7 +49,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('scheduled_at', models.DateTimeField()),
                 ('reason', models.TextField(blank=True, default='')),
-                ('status', models.CharField(choices=[('planned', 'Запланировано'), ('confirmed', 'Подтверждено'), ('cancelled', 'Отменено')], default=apps.patients.domain.enums.VisitStatus['PLANNED'], max_length=20)),
+                ('status', models.CharField(choices=[('planned', 'Запланировано'), ('confirmed', 'Подтверждено'), ('completed', 'Завершено'), ('cancelled', 'Отменено')], default=apps.patients.domain.enums.VisitStatus['PLANNED'], max_length=20)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('doctor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='visits', to='doctors.doctor')),

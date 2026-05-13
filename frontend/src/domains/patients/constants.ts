@@ -33,12 +33,14 @@ export const TOOTH_STATUS_BORDER: Record<ToothStatusValue, string> = {
 export const VISIT_STATUS_LABELS: Record<string, string> = {
   planned: "Запланировано",
   confirmed: "Подтверждено",
+  completed: "Завершено",
   cancelled: "Отменено",
 };
 
 export const VISIT_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   planned: { bg: "#DBEAFE", text: "#1E40AF" },
-  confirmed: { bg: "#D1FAE5", text: "#065F46" },
+  confirmed: { bg: "#FFF3E8", text: "#F97316" },
+  completed: { bg: "#D1FAE5", text: "#065F46" },
   cancelled: { bg: "#FEE2E2", text: "#991B1B" },
 };
 

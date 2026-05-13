@@ -50,7 +50,7 @@ export interface Visit {
   doctor: DoctorBrief;
   reason: string;
   teeth: VisitTooth[];
-  status: "planned" | "confirmed" | "cancelled";
+  status: "planned" | "confirmed" | "completed" | "cancelled";
   has_odontogram: boolean;
   has_soap: boolean;
   created_at: string;
