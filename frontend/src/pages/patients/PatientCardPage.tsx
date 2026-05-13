@@ -484,6 +484,10 @@ function LeftPanel({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
 function CenterPanel({
   loadingVisit,
   selectedVisitId,
