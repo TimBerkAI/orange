@@ -77,3 +77,7 @@ class AppointmentUpdateSerializer(serializers.Serializer):
     doctor_id = serializers.IntegerField(required=False)
     start_at = serializers.DateTimeField(required=False)
     end_at = serializers.DateTimeField(required=False)
+    status = serializers.ChoiceField(
+        choices=['planned', 'confirmed', 'completed', 'cancelled'],
+        required=False,
+    )

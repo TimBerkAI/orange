@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
@@ -77,8 +77,12 @@ function fullName(user: User): string {
   return [p.last_name, p.first_name, p.patronymic].filter(Boolean).join(" ") || user.email;
 }
 
+const USERS_PAGE_SIZE = 25;
+
 export function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -86,28 +90,28 @@ export function UsersPage() {
   const [editUser, setEditUser] = useState<User | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const loadUsers = useCallback((q?: string, p = 1) => {
+    listUsers({ search: q, page: p, page_size: USERS_PAGE_SIZE })
+      .then((res) => { setUsers(res.results); setTotal(res.count); setPage(p); })
+      .catch(() => null);
+  }, []);
+
   useEffect(() => {
-    listUsers()
-      .then(setUsers)
+    listUsers({ page: 1, page_size: USERS_PAGE_SIZE })
+      .then((res) => { setUsers(res.results); setTotal(res.count); })
       .finally(() => setLoading(false));
   }, []);
 
   const filtered = users.filter((u) => {
-    const matchesRole = roleFilter === "all" || u.role === roleFilter;
-    if (!matchesRole) return false;
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      u.email.toLowerCase().includes(q) ||
-      (u.profile?.first_name ?? "").toLowerCase().includes(q) ||
-      (u.profile?.last_name ?? "").toLowerCase().includes(q) ||
-      (u.profile?.phone ?? "").includes(q)
-    );
+    return roleFilter === "all" || u.role === roleFilter;
   });
+
+  const totalPages = Math.max(1, Math.ceil(total / USERS_PAGE_SIZE));
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => loadUsers(value || undefined, 1), 350);
   };
 
   if (loading) {
@@ -125,7 +129,7 @@ export function UsersPage() {
     <div>
       <PageHeader
         title="Пользователи"
-        subtitle={`${filtered.length} из ${users.length}`}
+        subtitle={`${total} пользователей`}
         actions={
           <Button onClick={() => setCreateOpen(true)}>
             <PlusIcon /> Добавить
@@ -273,10 +277,34 @@ export function UsersPage() {
         </table>
       </div>
 
+      {totalPages > 1 && (
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: spacing.sm, marginTop: spacing.md }}>
+          <button
+            type="button"
+            onClick={() => loadUsers(search || undefined, page - 1)}
+            disabled={page <= 1}
+            style={{ padding: "6px 14px", border: `1px solid ${colors.border}`, borderRadius: radius.md, backgroundColor: colors.surface, cursor: page <= 1 ? "not-allowed" : "pointer", fontSize: typography.caption.fontSize, color: page <= 1 ? colors.textMuted : colors.textPrimary, opacity: page <= 1 ? 0.5 : 1 }}
+          >
+            Назад
+          </button>
+          <span style={{ ...typography.caption, color: colors.textSecondary }}>
+            Страница {page} из {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => loadUsers(search || undefined, page + 1)}
+            disabled={page >= totalPages}
+            style={{ padding: "6px 14px", border: `1px solid ${colors.border}`, borderRadius: radius.md, backgroundColor: colors.surface, cursor: page >= totalPages ? "not-allowed" : "pointer", fontSize: typography.caption.fontSize, color: page >= totalPages ? colors.textMuted : colors.textPrimary, opacity: page >= totalPages ? 0.5 : 1 }}
+          >
+            Вперёд
+          </button>
+        </div>
+      )}
+
       <UserFormModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        onSaved={(u) => { setUsers((prev) => [u, ...prev]); setCreateOpen(false); }}
+        onSaved={(u) => { setUsers((prev) => [u, ...prev]); setTotal((c) => c + 1); setCreateOpen(false); }}
       />
       <UserFormModal
         open={!!editUser}
@@ -286,9 +314,9 @@ export function UsersPage() {
           setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
           setEditUser(null);
         }}
-        onDeleted={(id) => {
-          setUsers((prev) => prev.filter((u) => u.id !== id));
+        onDeleted={() => {
           setEditUser(null);
+          loadUsers(search || undefined, page);
         }}
       />
     </div>
@@ -306,7 +334,7 @@ function UserFormModal({
   user?: User | null;
   onClose: () => void;
   onSaved: (u: User) => void;
-  onDeleted?: (id: number) => void;
+  onDeleted?: () => void;
 }) {
   const isEdit = !!user;
   const [email, setEmail] = useState("");
@@ -384,7 +412,7 @@ function UserFormModal({
     setDeleting(true);
     try {
       await deleteUser(user!.id);
-      onDeleted?.(user!.id);
+      onDeleted?.();
     } catch (err: unknown) {
       setFieldErrors(parseApiFieldErrors(err));
       setDeleting(false);

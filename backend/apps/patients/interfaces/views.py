@@ -59,7 +59,19 @@ class PatientListCreateView(APIView):
             search=search,
             doctor_user_id=doctor_user_id,
         )
-        return Response(PatientListSerializer(patients, many=True).data)
+
+        page = int(request.query_params.get('page', 1))
+        page_size = min(int(request.query_params.get('page_size', 50)), 200)
+        total = patients.count()
+        start = (page - 1) * page_size
+        page_qs = patients[start:start + page_size]
+
+        return Response({
+            'count': total,
+            'page': page,
+            'page_size': page_size,
+            'results': PatientListSerializer(page_qs, many=True).data,
+        })
 
     @transaction.atomic
     def post(self, request):
@@ -198,7 +210,20 @@ class VisitListCreateView(APIView):
         if request.user.role == Role.DOCTOR:
             visits = visits.filter(doctor__user=request.user)
 
-        return Response(VisitListSerializer(visits, many=True).data)
+        visits = visits.order_by('-start_at')
+
+        page = int(request.query_params.get('page', 1))
+        page_size = min(int(request.query_params.get('page_size', 20)), 100)
+        total = visits.count()
+        start = (page - 1) * page_size
+        page_qs = visits[start:start + page_size]
+
+        return Response({
+            'count': total,
+            'page': page,
+            'page_size': page_size,
+            'results': VisitListSerializer(page_qs, many=True).data,
+        })
 
     def post(self, request, patient_id):
         serializer = VisitCreateSerializer(data=request.data)

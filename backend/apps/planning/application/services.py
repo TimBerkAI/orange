@@ -125,6 +125,7 @@ class AppointmentService:
         end_at = fields.pop('end_at', None)
         doctor_id = fields.pop('doctor_id', None)
         reason = fields.pop('reason', None)
+        status = fields.pop('status', None)
 
         new_start = start_at or visit.start_at
         new_end = end_at or visit.end_at
@@ -158,6 +159,9 @@ class AppointmentService:
             reason = sanitize_html(reason)
             visit_fields['reason'] = reason
             appt_fields['reason'] = reason
+
+        if status is not None:
+            visit_fields['status'] = status
 
         if visit_fields:
             self.visit_svc.update_visit(visit.id, **visit_fields)

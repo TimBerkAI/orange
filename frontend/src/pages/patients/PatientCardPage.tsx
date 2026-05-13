@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type React from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/domains/authorization/application/AuthContext";
 import { Button } from "@/shared/ui/Button";
@@ -73,6 +74,9 @@ export function PatientCardPage() {
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [visits, setVisits] = useState<Visit[]>([]);
+  const [visitPage, setVisitPage] = useState(1);
+  const [visitTotal, setVisitTotal] = useState(0);
+  const [loadingMoreVisits, setLoadingMoreVisits] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedVisitId, setSelectedVisitId] = useState<number | null>(null);
   const [odontogram, setOdontogram] = useState<OdontogramType | null>(null);
@@ -80,15 +84,47 @@ export function PatientCardPage() {
   const [loadingVisit, setLoadingVisit] = useState(false);
   const [editUserOpen, setEditUserOpen] = useState(false);
   const isMobile = useIsMobile();
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  const hasMoreVisits = visits.length < visitTotal;
 
   useEffect(() => {
-    Promise.all([getPatient(patientId), listVisits(patientId)])
+    Promise.all([getPatient(patientId), listVisits(patientId, { page: 1, page_size: 20 })])
       .then(([p, v]) => {
         setPatient(p);
-        setVisits(v);
+        setVisits(v.results);
+        setVisitTotal(v.count);
+        setVisitPage(1);
       })
       .finally(() => setLoading(false));
   }, [patientId]);
+
+  const loadMoreVisits = useCallback(async () => {
+    if (loadingMoreVisits || !hasMoreVisits) return;
+    setLoadingMoreVisits(true);
+    try {
+      const next = visitPage + 1;
+      const res = await listVisits(patientId, { page: next, page_size: 20 });
+      setVisits((prev) => [...prev, ...res.results]);
+      setVisitPage(next);
+      setVisitTotal(res.count);
+    } finally {
+      setLoadingMoreVisits(false);
+    }
+  }, [loadingMoreVisits, hasMoreVisits, visitPage, patientId]);
+
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) void loadMoreVisits();
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loadMoreVisits]);
 
   const selectVisit = useCallback(
     async (visitId: number) => {
@@ -138,6 +174,7 @@ export function PatientCardPage() {
     async (visitId: number) => {
       await deleteVisit(visitId);
       setVisits((prev) => prev.filter((v) => v.id !== visitId));
+      setVisitTotal((prev) => Math.max(0, prev - 1));
       if (selectedVisitId === visitId) {
         setSelectedVisitId(null);
         setOdontogram(null);
@@ -193,11 +230,15 @@ export function PatientCardPage() {
       <LeftPanel
         patient={patient}
         visits={visits}
+        visitTotal={visitTotal}
         selectedVisitId={selectedVisitId}
         onSelectVisit={selectVisit}
         isMobile={isMobile}
         isAdmin={isAdmin}
         onEditUser={() => setEditUserOpen(true)}
+        loadMoreRef={loadMoreRef}
+        hasMoreVisits={hasMoreVisits}
+        loadingMoreVisits={loadingMoreVisits}
       />
 
       <UserEditModal
@@ -243,19 +284,27 @@ export function PatientCardPage() {
 function LeftPanel({
   patient,
   visits,
+  visitTotal,
   selectedVisitId,
   onSelectVisit,
   isMobile,
   isAdmin,
   onEditUser,
+  loadMoreRef,
+  hasMoreVisits,
+  loadingMoreVisits,
 }: {
   patient: Patient;
   visits: Visit[];
+  visitTotal: number;
   selectedVisitId: number | null;
   onSelectVisit: (id: number) => void;
   isMobile: boolean;
   isAdmin: boolean;
   onEditUser: () => void;
+  loadMoreRef: React.RefObject<HTMLDivElement | null>;
+  hasMoreVisits: boolean;
+  loadingMoreVisits: boolean;
 }) {
   return (
     <div
@@ -334,7 +383,7 @@ function LeftPanel({
             color: colors.textSecondary,
           }}
         >
-          История посещений ({visits.length})
+          История посещений ({visitTotal})
         </div>
         <div style={{ flex: 1, overflowY: "auto" }}>
           {visits.length === 0 ? (
@@ -349,81 +398,92 @@ function LeftPanel({
               Нет посещений
             </div>
           ) : (
-            visits.map((visit) => {
-              const isSelected = visit.id === selectedVisitId;
-              return (
-                <div
-                  key={visit.id}
-                  onClick={() => void onSelectVisit(visit.id)}
-                  style={{
-                    padding: `${spacing.sm} ${spacing.md}`,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    cursor: "pointer",
-                    backgroundColor: isSelected ? colors.primaryLight : "transparent",
-                    transition: "background-color 0.1s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected) {
-                      (e.currentTarget as HTMLDivElement).style.backgroundColor = colors.surfaceHover;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) {
-                      (e.currentTarget as HTMLDivElement).style.backgroundColor = "transparent";
-                    }
-                  }}
-                >
+            <>
+              {visits.map((visit) => {
+                const isSelected = visit.id === selectedVisitId;
+                return (
                   <div
+                    key={visit.id}
+                    onClick={() => void onSelectVisit(visit.id)}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: "2px",
+                      padding: `${spacing.sm} ${spacing.md}`,
+                      borderBottom: `1px solid ${colors.borderLight}`,
+                      cursor: "pointer",
+                      backgroundColor: isSelected ? colors.primaryLight : "transparent",
+                      transition: "background-color 0.1s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) {
+                        (e.currentTarget as HTMLDivElement).style.backgroundColor = colors.surfaceHover;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) {
+                        (e.currentTarget as HTMLDivElement).style.backgroundColor = "transparent";
+                      }
                     }}
                   >
-                    <span
-                      style={{
-                        fontSize: typography.caption.fontSize,
-                        fontWeight: "500",
-                        color: isSelected ? colors.primaryDark : colors.textPrimary,
-                      }}
-                    >
-                      {formatDateTime(visit.start_at)}
-                    </span>
-                    <StatusBadge status={visit.status} />
-                  </div>
-                  <div style={{ ...typography.caption, color: colors.textSecondary }}>
-                    {visit.doctor.full_name}
-                  </div>
-                  {visit.teeth.length > 0 && (
-                    <div style={{ ...typography.caption, color: colors.textMuted, marginTop: "2px" }}>
-                      Зубы: {visit.teeth.map((t) => t.number).join(", ")}
-                    </div>
-                  )}
-                  {visit.reason && (
                     <div
                       style={{
-                        ...typography.caption,
-                        color: colors.textMuted,
-                        marginTop: "2px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: "2px",
                       }}
                     >
-                      {visit.reason}
+                      <span
+                        style={{
+                          fontSize: typography.caption.fontSize,
+                          fontWeight: "500",
+                          color: isSelected ? colors.primaryDark : colors.textPrimary,
+                        }}
+                      >
+                        {formatDateTime(visit.start_at)}
+                      </span>
+                      <StatusBadge status={visit.status} />
                     </div>
-                  )}
+                    <div style={{ ...typography.caption, color: colors.textSecondary }}>
+                      {visit.doctor.full_name}
+                    </div>
+                    {visit.teeth.length > 0 && (
+                      <div style={{ ...typography.caption, color: colors.textMuted, marginTop: "2px" }}>
+                        Зубы: {visit.teeth.map((t) => t.number).join(", ")}
+                      </div>
+                    )}
+                    {visit.reason && (
+                      <div
+                        style={{
+                          ...typography.caption,
+                          color: colors.textMuted,
+                          marginTop: "2px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {visit.reason}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {hasMoreVisits && (
+                <div
+                  ref={loadMoreRef}
+                  style={{
+                    padding: spacing.sm,
+                    textAlign: "center",
+                    color: colors.textMuted,
+                    fontSize: "11px",
+                  }}
+                >
+                  {loadingMoreVisits ? "Загрузка..." : ""}
                 </div>
-              );
-            })
+              )}
+            </>
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
 function CenterPanel({
   loadingVisit,
   selectedVisitId,

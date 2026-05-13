@@ -62,12 +62,16 @@ function formatDate(dateStr?: string | null) {
   return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
+const PAGE_SIZE = 25;
+
 export function PatientsPage() {
   const { role } = useAuth();
   const navigate = useNavigate();
   const isAdmin = role === "admin";
 
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
@@ -75,21 +79,25 @@ export function PatientsPage() {
   const [editProfileUser, setEditProfileUser] = useState<User | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadPatients = useCallback((q?: string) => {
-    listPatients(q).then(setPatients).catch(() => null);
+  const loadPatients = useCallback((q?: string, p = 1) => {
+    listPatients({ search: q, page: p, page_size: PAGE_SIZE })
+      .then((res) => { setPatients(res.results); setTotal(res.count); setPage(p); })
+      .catch(() => null);
   }, []);
 
   useEffect(() => {
-    listPatients()
-      .then(setPatients)
+    listPatients({ page: 1, page_size: PAGE_SIZE })
+      .then((res) => { setPatients(res.results); setTotal(res.count); setPage(1); })
       .finally(() => setLoading(false));
   }, []);
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => loadPatients(value || undefined), 350);
+    searchTimeout.current = setTimeout(() => loadPatients(value || undefined, 1), 350);
   };
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   if (loading) {
     return (
@@ -106,7 +114,7 @@ export function PatientsPage() {
     <div>
       <PageHeader
         title="Пациенты"
-        subtitle={`${patients.length} ${pluralPatients(patients.length)}`}
+        subtitle={`${total} ${pluralPatients(total)}`}
         actions={
           isAdmin ? (
             <Button onClick={() => setCreateOpen(true)}>
@@ -235,14 +243,38 @@ export function PatientsPage() {
         </table>
       </div>
 
+      {totalPages > 1 && (
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: spacing.sm, marginTop: spacing.md }}>
+          <button
+            type="button"
+            onClick={() => loadPatients(search || undefined, page - 1)}
+            disabled={page <= 1}
+            style={{ padding: "6px 14px", border: `1px solid ${colors.border}`, borderRadius: radius.md, backgroundColor: colors.surface, cursor: page <= 1 ? "not-allowed" : "pointer", fontSize: typography.caption.fontSize, color: page <= 1 ? colors.textMuted : colors.textPrimary, opacity: page <= 1 ? 0.5 : 1 }}
+          >
+            Назад
+          </button>
+          <span style={{ ...typography.caption, color: colors.textSecondary }}>
+            Страница {page} из {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => loadPatients(search || undefined, page + 1)}
+            disabled={page >= totalPages}
+            style={{ padding: "6px 14px", border: `1px solid ${colors.border}`, borderRadius: radius.md, backgroundColor: colors.surface, cursor: page >= totalPages ? "not-allowed" : "pointer", fontSize: typography.caption.fontSize, color: page >= totalPages ? colors.textMuted : colors.textPrimary, opacity: page >= totalPages ? 0.5 : 1 }}
+          >
+            Вперёд
+          </button>
+        </div>
+      )}
+
       {isAdmin && (
         <>
           <CreatePatientModal
             open={createOpen}
             onClose={() => setCreateOpen(false)}
-            onCreated={(p) => {
-              setPatients((prev) => [p, ...prev]);
+            onCreated={() => {
               setCreateOpen(false);
+              loadPatients(search || undefined, 1);
             }}
           />
           <EditPatientModal
@@ -253,9 +285,9 @@ export function PatientsPage() {
               setPatients((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
               setEditPatient(null);
             }}
-            onDeleted={(id) => {
-              setPatients((prev) => prev.filter((p) => p.id !== id));
+            onDeleted={() => {
               setEditPatient(null);
+              loadPatients(search || undefined, page);
             }}
             onEditProfile={(patientUser) => {
               setEditPatient(null);
@@ -317,7 +349,7 @@ function CreatePatientModal({
 }: {
   open: boolean;
   onClose: () => void;
-  onCreated: (p: Patient) => void;
+  onCreated: () => void;
 }) {
   type UserMode = "new" | "existing";
   const [userMode, setUserMode] = useState<UserMode>("new");
@@ -370,8 +402,8 @@ function CreatePatientModal({
           phone: phone || undefined,
         };
       }
-      const patient = await createPatient(payload);
-      onCreated(patient);
+      await createPatient(payload);
+      onCreated();
     } catch (err: unknown) {
       setFieldErrors(parseApiFieldErrors(err));
     } finally {
@@ -521,7 +553,7 @@ function EditPatientModal({
   patient: Patient | null;
   onClose: () => void;
   onSaved: (p: Patient) => void;
-  onDeleted: (id: number) => void;
+  onDeleted: () => void;
   onEditProfile: (user: import("@/domains/patients/types").PatientUser) => void;
 }) {
   const [allergies, setAllergies] = useState("");
@@ -562,7 +594,7 @@ function EditPatientModal({
     setDeleting(true);
     try {
       await deletePatient(patient.id);
-      onDeleted(patient.id);
+      onDeleted();
     } catch {
       setError("Ошибка при удалении");
       setDeleting(false);

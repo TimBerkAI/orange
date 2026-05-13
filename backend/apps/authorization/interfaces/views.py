@@ -86,9 +86,20 @@ class UserSearchView(APIView):
                 | Q(profile__phone__icontains=search)
             )
         elif search:
-            return Response([])
+            return Response({'count': 0, 'page': 1, 'page_size': 50, 'results': []})
 
-        return Response(UserSerializer(qs[:50], many=True).data)
+        page = int(request.query_params.get('page', 1))
+        page_size = min(int(request.query_params.get('page_size', 50)), 200)
+        total = qs.count()
+        start = (page - 1) * page_size
+        page_qs = qs[start:start + page_size]
+
+        return Response({
+            'count': total,
+            'page': page,
+            'page_size': page_size,
+            'results': UserSerializer(page_qs, many=True).data,
+        })
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)

@@ -1,5 +1,5 @@
 import { apiFetch } from "@/shared/api/httpClient";
-import type { AuthTokens, User, UserProfile } from "@/shared/types";
+import type { AuthTokens, PaginatedResponse, User, UserProfile } from "@/shared/types";
 
 export function login(email: string, password: string): Promise<AuthTokens> {
   return apiFetch<AuthTokens>("/auth/login/", {
@@ -29,11 +29,15 @@ export function refreshToken(refresh: string): Promise<{ access: string }> {
 }
 
 export function searchUsers(search: string): Promise<User[]> {
-  return apiFetch<User[]>(`/auth/users/?search=${encodeURIComponent(search)}`);
+  return apiFetch<PaginatedResponse<User>>(`/auth/users/?search=${encodeURIComponent(search)}&page_size=50`).then((r) => r.results);
 }
 
-export function listUsers(): Promise<User[]> {
-  return apiFetch<User[]>("/auth/users/");
+export function listUsers(params?: { search?: string; page?: number; page_size?: number }): Promise<PaginatedResponse<User>> {
+  const q = new URLSearchParams();
+  if (params?.search) q.set("search", params.search);
+  if (params?.page) q.set("page", String(params.page));
+  q.set("page_size", String(params?.page_size ?? 50));
+  return apiFetch<PaginatedResponse<User>>(`/auth/users/?${q.toString()}`);
 }
 
 export function createUser(data: {

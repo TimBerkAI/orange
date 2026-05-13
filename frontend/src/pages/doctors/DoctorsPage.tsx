@@ -26,7 +26,7 @@ import { colors, radius, shadows, spacing, typography } from "@/shared/config/th
 import {
   createDoctor,
   deleteDoctor,
-  listDoctors,
+  listDoctorsPaginated,
   listSpecializations,
   updateDoctor,
 } from "@/domains/doctors/api";
@@ -146,8 +146,12 @@ function pluralDoctors(n: number): string {
   return "врачей";
 }
 
+const DOCTORS_PAGE_SIZE = 25;
+
 function AdminDoctorsView() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [specializations, setSpecializations] = useState<Specialization[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -157,14 +161,17 @@ function AdminDoctorsView() {
   const [editUserDoctor, setEditUserDoctor] = useState<Doctor | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadDoctors = useCallback((q?: string) => {
-    listDoctors(q).then(setDoctors).catch(() => null);
+  const loadDoctors = useCallback((q?: string, p = 1) => {
+    listDoctorsPaginated({ search: q, page: p, page_size: DOCTORS_PAGE_SIZE })
+      .then((res) => { setDoctors(res.results); setTotal(res.count); setPage(p); })
+      .catch(() => null);
   }, []);
 
   useEffect(() => {
-    Promise.all([listDoctors(), listSpecializations()])
-      .then(([docs, specs]) => {
-        setDoctors(docs);
+    Promise.all([listDoctorsPaginated({ page: 1, page_size: DOCTORS_PAGE_SIZE }), listSpecializations()])
+      .then(([res, specs]) => {
+        setDoctors(res.results);
+        setTotal(res.count);
         setSpecializations(specs);
       })
       .finally(() => setLoading(false));
@@ -173,8 +180,10 @@ function AdminDoctorsView() {
   const handleSearchChange = (value: string) => {
     setSearch(value);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => loadDoctors(value || undefined), 350);
+    searchTimeout.current = setTimeout(() => loadDoctors(value || undefined, 1), 350);
   };
+
+  const totalPages = Math.max(1, Math.ceil(total / DOCTORS_PAGE_SIZE));
 
   const sortedDoctors = useMemo(
     () =>
@@ -201,14 +210,14 @@ function AdminDoctorsView() {
       const updated = await updateDoctor(editDoctor.id, data);
       setDoctors((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
     } else {
-      const created = await createDoctor(data);
-      setDoctors((prev) => [...prev, created]);
+      await createDoctor(data);
+      loadDoctors(search || undefined, 1);
     }
   };
 
   const handleDelete = async () => {
     await deleteDoctor(editDoctor!.id);
-    setDoctors((prev) => prev.filter((d) => d.id !== editDoctor!.id));
+    loadDoctors(search || undefined, page);
   };
 
   if (loading) {
@@ -226,7 +235,7 @@ function AdminDoctorsView() {
     <div>
       <PageHeader
         title="Врачи"
-        subtitle={`${doctors.length} ${pluralDoctors(doctors.length)}`}
+        subtitle={`${total} ${pluralDoctors(total)}`}
         actions={
           <Button onClick={openCreate}>
             <PlusIcon /> Добавить врача
@@ -377,6 +386,30 @@ function AdminDoctorsView() {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: spacing.sm, marginTop: spacing.md }}>
+          <button
+            type="button"
+            onClick={() => loadDoctors(search || undefined, page - 1)}
+            disabled={page <= 1}
+            style={{ padding: "6px 14px", border: `1px solid ${colors.border}`, borderRadius: radius.md, backgroundColor: colors.surface, cursor: page <= 1 ? "not-allowed" : "pointer", fontSize: typography.caption.fontSize, color: page <= 1 ? colors.textMuted : colors.textPrimary, opacity: page <= 1 ? 0.5 : 1 }}
+          >
+            Назад
+          </button>
+          <span style={{ ...typography.caption, color: colors.textSecondary }}>
+            Страница {page} из {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => loadDoctors(search || undefined, page + 1)}
+            disabled={page >= totalPages}
+            style={{ padding: "6px 14px", border: `1px solid ${colors.border}`, borderRadius: radius.md, backgroundColor: colors.surface, cursor: page >= totalPages ? "not-allowed" : "pointer", fontSize: typography.caption.fontSize, color: page >= totalPages ? colors.textMuted : colors.textPrimary, opacity: page >= totalPages ? 0.5 : 1 }}
+          >
+            Вперёд
+          </button>
+        </div>
+      )}
 
       <DoctorFormModal
         open={modalOpen}

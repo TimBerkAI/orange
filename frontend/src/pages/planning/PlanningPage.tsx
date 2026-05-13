@@ -139,6 +139,12 @@ export function PlanningPage() {
     setDetailAppt(null);
   };
 
+  const handleStatusChange = async (appt: Appointment, status: string) => {
+    const updated = await updateAppointment(appt.id, { status });
+    setAppointments((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+    setDetailAppt(updated);
+  };
+
   const handleDelete = async () => {
     if (!detailAppt) return;
     setDeleting(true);
@@ -454,6 +460,7 @@ export function PlanningPage() {
         onDelete={handleDelete}
         deleting={deleting}
         onNavigateToPatient={(patientId) => void navigate(`/patients/${patientId}`)}
+        onStatusChange={(status) => detailAppt && void handleStatusChange(detailAppt, status)}
       />
     </div>
   );
@@ -472,8 +479,9 @@ function AppointmentCard({
   const endMinutes = (end.getHours() - MIN_HOUR) * 60 + end.getMinutes();
   const top = (startMinutes / 60) * HOUR_HEIGHT;
   const height = Math.max(((endMinutes - startMinutes) / 60) * HOUR_HEIGHT, 20);
-  const bg = VISIT_STATUS_BG[appointment.visit_status] ?? colors.borderLight;
-  const fg = VISIT_STATUS_FG[appointment.visit_status] ?? colors.textPrimary;
+  const isPast = end < new Date();
+  const bg = isPast ? "#f0f0f0" : (VISIT_STATUS_BG[appointment.visit_status] ?? colors.borderLight);
+  const fg = isPast ? colors.textMuted : (VISIT_STATUS_FG[appointment.visit_status] ?? colors.textPrimary);
 
   return (
     <div
@@ -560,6 +568,7 @@ function AppointmentDetailModal({
   onDelete,
   deleting,
   onNavigateToPatient,
+  onStatusChange,
 }: {
   appointment: Appointment | null;
   onClose: () => void;
@@ -568,8 +577,10 @@ function AppointmentDetailModal({
   onDelete: () => void;
   deleting: boolean;
   onNavigateToPatient: (id: number) => void;
+  onStatusChange: (status: string) => void;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [changingStatus, setChangingStatus] = useState(false);
 
   useEffect(() => {
     setConfirmDelete(false);
@@ -579,9 +590,18 @@ function AppointmentDetailModal({
 
   const start = new Date(appointment.start_at);
   const end = new Date(appointment.end_at);
-  const statusLabel = VISIT_STATUS_LABELS[appointment.visit_status] ?? appointment.visit_status;
   const statusBg = VISIT_STATUS_BG[appointment.visit_status] ?? colors.borderLight;
   const statusFg = VISIT_STATUS_FG[appointment.visit_status] ?? colors.textPrimary;
+
+  const handleStatusSelect = async (newStatus: string) => {
+    if (newStatus === appointment.visit_status) return;
+    setChangingStatus(true);
+    try {
+      onStatusChange(newStatus);
+    } finally {
+      setChangingStatus(false);
+    }
+  };
 
   return (
     <Modal open={!!appointment} onClose={onClose} title="Детали записи" width={440}>
@@ -619,23 +639,55 @@ function AppointmentDetailModal({
               ...typography.caption,
               color: colors.textSecondary,
               display: "block",
-              marginBottom: "2px",
+              marginBottom: "6px",
             }}
           >
             Статус
           </span>
-          <span
-            style={{
-              padding: "2px 8px",
-              borderRadius: "9999px",
-              fontSize: "11px",
-              fontWeight: "500",
-              backgroundColor: statusBg,
-              color: statusFg,
-            }}
-          >
-            {statusLabel}
-          </span>
+          {isAdmin ? (
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+              {(["planned", "confirmed", "completed", "cancelled"] as const).map((s) => {
+                const isActive = appointment.visit_status === s;
+                const bg = VISIT_STATUS_BG[s];
+                const fg = VISIT_STATUS_FG[s];
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    disabled={changingStatus}
+                    onClick={() => void handleStatusSelect(s)}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: "9999px",
+                      fontSize: "11px",
+                      fontWeight: "500",
+                      backgroundColor: isActive ? bg : colors.surface,
+                      color: isActive ? fg : colors.textSecondary,
+                      border: `1px solid ${isActive ? fg : colors.border}`,
+                      cursor: changingStatus ? "not-allowed" : "pointer",
+                      opacity: changingStatus ? 0.6 : 1,
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {VISIT_STATUS_LABELS[s]}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <span
+              style={{
+                padding: "2px 8px",
+                borderRadius: "9999px",
+                fontSize: "11px",
+                fontWeight: "500",
+                backgroundColor: statusBg,
+                color: statusFg,
+              }}
+            >
+              {VISIT_STATUS_LABELS[appointment.visit_status] ?? appointment.visit_status}
+            </span>
+          )}
         </div>
 
         <button

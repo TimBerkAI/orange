@@ -1,13 +1,29 @@
 import { apiFetch } from "@/shared/api/httpClient";
+import type { PaginatedResponse } from "@/shared/types";
 import type { Odontogram, Patient, SoapNote, Tooth, Visit } from "./types";
 
 export function listTeeth(): Promise<Tooth[]> {
   return apiFetch("/patients/teeth/");
 }
 
-export function listPatients(search?: string): Promise<Patient[]> {
-  const params = search ? `?search=${encodeURIComponent(search)}` : "";
-  return apiFetch(`/patients/${params}`);
+export interface PatientListParams {
+  search?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export function listPatients(searchOrParams?: string | PatientListParams): Promise<PaginatedResponse<Patient>> {
+  if (typeof searchOrParams === "string" || searchOrParams === undefined) {
+    const q = new URLSearchParams();
+    if (searchOrParams) q.set("search", searchOrParams);
+    q.set("page_size", "50");
+    return apiFetch<PaginatedResponse<Patient>>(`/patients/?${q.toString()}`);
+  }
+  const q = new URLSearchParams();
+  if (searchOrParams.search) q.set("search", searchOrParams.search);
+  if (searchOrParams.page) q.set("page", String(searchOrParams.page));
+  q.set("page_size", String(searchOrParams.page_size ?? 50));
+  return apiFetch<PaginatedResponse<Patient>>(`/patients/?${q.toString()}`);
 }
 
 export function getPatient(id: number): Promise<Patient> {
@@ -41,8 +57,11 @@ export function deletePatient(id: number): Promise<void> {
   return apiFetch(`/patients/${id}/`, { method: "DELETE" });
 }
 
-export function listVisits(patientId: number): Promise<Visit[]> {
-  return apiFetch(`/patients/${patientId}/visits/`);
+export function listVisits(patientId: number, params?: { page?: number; page_size?: number }): Promise<PaginatedResponse<Visit>> {
+  const q = new URLSearchParams();
+  if (params?.page) q.set("page", String(params.page));
+  q.set("page_size", String(params?.page_size ?? 20));
+  return apiFetch<PaginatedResponse<Visit>>(`/patients/${patientId}/visits/?${q.toString()}`);
 }
 
 export function createVisit(

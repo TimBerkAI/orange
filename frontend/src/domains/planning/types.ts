@@ -39,4 +39,5 @@ export interface AppointmentUpdatePayload {
   doctor_id?: number;
   start_at?: string;
   end_at?: string;
+  status?: string;
 }

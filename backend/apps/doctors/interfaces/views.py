@@ -71,7 +71,19 @@ class DoctorListCreateView(APIView):
         service = DoctorService()
         search = request.query_params.get('search')
         doctors = service.list_doctors(search=search)
-        return Response(DoctorListSerializer(doctors, many=True).data)
+
+        page = int(request.query_params.get('page', 1))
+        page_size = min(int(request.query_params.get('page_size', 50)), 200)
+        total = doctors.count()
+        start = (page - 1) * page_size
+        page_qs = doctors[start:start + page_size]
+
+        return Response({
+            'count': total,
+            'page': page,
+            'page_size': page_size,
+            'results': DoctorListSerializer(page_qs, many=True).data,
+        })
 
     @transaction.atomic
     def post(self, request):
