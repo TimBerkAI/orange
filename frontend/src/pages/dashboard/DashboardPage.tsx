@@ -59,6 +59,9 @@ function VisitStatsChart({
 
   const barWidth = data.length > 0 ? Math.floor(100 / data.length) : 10;
 
+  const firstEntry = data[0];
+  const lastEntry = data[data.length - 1];
+
   return (
     <div>
       {loading ? (
@@ -122,7 +125,7 @@ function VisitStatsChart({
           })}
         </div>
       )}
-      {!loading && data.length > 0 && (
+      {!loading && firstEntry && lastEntry && (
         <div
           style={{
             display: "flex",
@@ -131,10 +134,10 @@ function VisitStatsChart({
           }}
         >
           <span style={{ ...typography.caption, color: colors.textMuted, fontSize: "10px" }}>
-            {formatDate(data[0].date)}
+            {formatDate(firstEntry.date)}
           </span>
           <span style={{ ...typography.caption, color: colors.textMuted, fontSize: "10px" }}>
-            {formatDate(data[data.length - 1].date)}
+            {formatDate(lastEntry.date)}
           </span>
         </div>
       )}
@@ -251,7 +254,7 @@ export function DashboardPage() {
 
         {isAdminOrDoctor && (
           <StatCard
-            label="Ожидают подтверждения завтра"
+            label="Ожидают подтверждения на завтра"
             value={stats?.tomorrow_pending ?? 0}
             color={colors.primary}
             loading={statsLoading}
