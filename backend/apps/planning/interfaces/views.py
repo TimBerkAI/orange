@@ -166,7 +166,9 @@ class DashboardStatsView(APIView):
             status='planned',
         ).count()
 
-        return Response({
-            'today_confirmed': today_confirmed,
-            'tomorrow_pending': tomorrow_pending,
-        })
+        return Response(
+            {
+                'today_confirmed': today_confirmed,
+                'tomorrow_pending': tomorrow_pending,
+            }
+        )

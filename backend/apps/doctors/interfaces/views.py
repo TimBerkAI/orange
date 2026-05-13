@@ -46,6 +46,7 @@ class SpecializationDetailView(APIView):
 
     def patch(self, request, specialization_id):
         from apps.doctors.infrastructure.models import Specialization
+
         spec = Specialization.objects.filter(pk=specialization_id).first()
         if not spec:
             return Response(status=status.HTTP_404_NOT_FOUND)
@@ -76,14 +77,16 @@ class DoctorListCreateView(APIView):
         page_size = min(int(request.query_params.get('page_size', 50)), 200)
         total = doctors.count()
         start = (page - 1) * page_size
-        page_qs = doctors[start:start + page_size]
+        page_qs = doctors[start : start + page_size]
 
-        return Response({
-            'count': total,
-            'page': page,
-            'page_size': page_size,
-            'results': DoctorListSerializer(page_qs, many=True).data,
-        })
+        return Response(
+            {
+                'count': total,
+                'page': page,
+                'page_size': page_size,
+                'results': DoctorListSerializer(page_qs, many=True).data,
+            }
+        )
 
     @transaction.atomic
     def post(self, request):

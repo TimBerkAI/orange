@@ -28,7 +28,11 @@ class TestCreateAppointment:
         assert profile.phone == '+79001234567'
 
     def test_reuses_existing_patient_by_phone(
-        self, teeth, doctor_with_user, patient, admin_user_for_planning,
+        self,
+        teeth,
+        doctor_with_user,
+        patient,
+        admin_user_for_planning,
     ):
         phone = patient.user.profile.phone
         doctor, _ = doctor_with_user
@@ -47,7 +51,10 @@ class TestCreateAppointment:
         assert appt.visit.patient_id == patient.id
 
     def test_creates_patient_for_existing_user_without_profile(
-        self, teeth, doctor_with_user, admin_user_for_planning,
+        self,
+        teeth,
+        doctor_with_user,
+        admin_user_for_planning,
     ):
         doctor, _ = doctor_with_user
         service = AppointmentService()
@@ -69,7 +76,11 @@ class TestCreateAppointment:
 @pytest.mark.django_db
 class TestOverlapValidation:
     def test_doctor_overlap_rejected(
-        self, appointment, teeth, doctor_with_user, admin_user_for_planning,
+        self,
+        appointment,
+        teeth,
+        doctor_with_user,
+        admin_user_for_planning,
     ):
         doctor, _ = doctor_with_user
         service = AppointmentService()
@@ -86,7 +97,10 @@ class TestOverlapValidation:
             )
 
     def test_patient_overlap_rejected(
-        self, appointment, teeth, admin_user_for_planning,
+        self,
+        appointment,
+        teeth,
+        admin_user_for_planning,
     ):
         from apps.doctors.tests.factories import DoctorFactory
         from apps.authorization.tests.factories import UserFactory, UserProfileFactory
@@ -108,7 +122,11 @@ class TestOverlapValidation:
             )
 
     def test_no_overlap_adjacent_times(
-        self, appointment, teeth, doctor_with_user, admin_user_for_planning,
+        self,
+        appointment,
+        teeth,
+        doctor_with_user,
+        admin_user_for_planning,
     ):
         doctor, _ = doctor_with_user
         service = AppointmentService()
@@ -128,7 +146,10 @@ class TestOverlapValidation:
 @pytest.mark.django_db
 class TestDurationValidation:
     def test_too_short_rejected(
-        self, teeth, doctor_with_user, admin_user_for_planning,
+        self,
+        teeth,
+        doctor_with_user,
+        admin_user_for_planning,
     ):
         doctor, _ = doctor_with_user
         service = AppointmentService()
@@ -145,7 +166,10 @@ class TestDurationValidation:
             )
 
     def test_too_long_rejected(
-        self, teeth, doctor_with_user, admin_user_for_planning,
+        self,
+        teeth,
+        doctor_with_user,
+        admin_user_for_planning,
     ):
         doctor, _ = doctor_with_user
         service = AppointmentService()
@@ -162,7 +186,10 @@ class TestDurationValidation:
             )
 
     def test_end_before_start_rejected(
-        self, teeth, doctor_with_user, admin_user_for_planning,
+        self,
+        teeth,
+        doctor_with_user,
+        admin_user_for_planning,
     ):
         doctor, _ = doctor_with_user
         service = AppointmentService()
@@ -187,7 +214,11 @@ class TestUpdateAppointment:
         assert updated.reason == 'Новая причина'
 
     def test_update_time_revalidates_overlap(
-        self, appointment, teeth, doctor_with_user, admin_user_for_planning,
+        self,
+        appointment,
+        teeth,
+        doctor_with_user,
+        admin_user_for_planning,
     ):
         doctor, _ = doctor_with_user
         service = AppointmentService()

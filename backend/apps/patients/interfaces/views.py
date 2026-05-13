@@ -64,14 +64,16 @@ class PatientListCreateView(APIView):
         page_size = min(int(request.query_params.get('page_size', 50)), 200)
         total = patients.count()
         start = (page - 1) * page_size
-        page_qs = patients[start:start + page_size]
+        page_qs = patients[start : start + page_size]
 
-        return Response({
-            'count': total,
-            'page': page,
-            'page_size': page_size,
-            'results': PatientListSerializer(page_qs, many=True).data,
-        })
+        return Response(
+            {
+                'count': total,
+                'page': page,
+                'page_size': page_size,
+                'results': PatientListSerializer(page_qs, many=True).data,
+            }
+        )
 
     @transaction.atomic
     def post(self, request):
@@ -216,14 +218,16 @@ class VisitListCreateView(APIView):
         page_size = min(int(request.query_params.get('page_size', 20)), 100)
         total = visits.count()
         start = (page - 1) * page_size
-        page_qs = visits[start:start + page_size]
+        page_qs = visits[start : start + page_size]
 
-        return Response({
-            'count': total,
-            'page': page,
-            'page_size': page_size,
-            'results': VisitListSerializer(page_qs, many=True).data,
-        })
+        return Response(
+            {
+                'count': total,
+                'page': page,
+                'page_size': page_size,
+                'results': VisitListSerializer(page_qs, many=True).data,
+            }
+        )
 
     def post(self, request, patient_id):
         serializer = VisitCreateSerializer(data=request.data)
@@ -377,7 +381,9 @@ class VisitStatsView(APIView):
         result = []
         cursor = date_from
         while cursor <= today:
-            result.append({'date': cursor.isoformat(), 'count': date_map.get(cursor.isoformat(), 0)})
+            result.append(
+                {'date': cursor.isoformat(), 'count': date_map.get(cursor.isoformat(), 0)}
+            )
             cursor += datetime.timedelta(days=1)
 
         return Response(result)

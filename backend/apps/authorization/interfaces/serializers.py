@@ -23,7 +23,9 @@ class UserSerializer(serializers.ModelSerializer):
 
 class RegisterSerializer(serializers.Serializer):
     email = serializers.EmailField()
-    password = serializers.CharField(min_length=8, write_only=True, required=False, allow_blank=True, allow_null=True)
+    password = serializers.CharField(
+        min_length=8, write_only=True, required=False, allow_blank=True, allow_null=True
+    )
     role = serializers.ChoiceField(choices=Role.choices())
     first_name = serializers.CharField(max_length=150)
     last_name = serializers.CharField(max_length=150)

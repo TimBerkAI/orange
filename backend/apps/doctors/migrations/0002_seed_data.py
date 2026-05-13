@@ -11,6 +11,7 @@ All data is skipped if the email already exists so the migration is safe to re-r
 """
 
 from django.db import migrations
+from django.contrib.auth.hashers import make_password
 import datetime
 
 
@@ -42,13 +43,14 @@ def seed_data(apps, schema_editor):
 
     # ── admin user ────────────────────────────────────────────────────────────
     if not User.objects.filter(email='admin@clinic.local').exists():
-        admin = User.objects.create_superuser(
+        admin = User.objects.create(
             email='admin@clinic.local',
-            password='admin1234',
+            password=make_password('admin1234'),
+            role='admin',
+            is_staff=True,
+            is_superuser=True,
+            is_active=True,
         )
-        admin.role = 'admin'
-        admin.is_staff = True
-        admin.save()
         UserProfile.objects.create(
             user=admin,
             first_name='Администратор',
@@ -60,9 +62,7 @@ def seed_data(apps, schema_editor):
     # ── doctor 1 ──────────────────────────────────────────────────────────────
     doctor1_user = None
     if not User.objects.filter(email='doctor.ivanov@clinic.local').exists():
-        doctor1_user = User(email='doctor.ivanov@clinic.local', role='doctor', is_staff=False)
-        doctor1_user.set_password('doctor1234')
-        doctor1_user.save()
+        doctor1_user = User.objects.create(email='doctor.ivanov@clinic.local', role='doctor', is_staff=False, password=make_password('doctor1234'))
         UserProfile.objects.create(
             user=doctor1_user,
             first_name='Иван',
@@ -86,9 +86,7 @@ def seed_data(apps, schema_editor):
     # ── doctor 2 ──────────────────────────────────────────────────────────────
     doctor2_user = None
     if not User.objects.filter(email='doctor.petrova@clinic.local').exists():
-        doctor2_user = User(email='doctor.petrova@clinic.local', role='doctor', is_staff=False)
-        doctor2_user.set_password('doctor1234')
-        doctor2_user.save()
+        doctor2_user = User.objects.create(email='doctor.petrova@clinic.local', role='doctor', is_staff=False, password=make_password('doctor1234'))
         UserProfile.objects.create(
             user=doctor2_user,
             first_name='Мария',
@@ -120,9 +118,7 @@ def seed_data(apps, schema_editor):
                 return Patient.objects.get(user=u)
             except Patient.DoesNotExist:
                 return None
-        u = User(email=email, role='patient', is_staff=False)
-        u.set_password(password)
-        u.save()
+        u = User.objects.create(email=email, role='patient', is_staff=False, password=make_password(password))
         UserProfile.objects.create(
             user=u,
             first_name=first,

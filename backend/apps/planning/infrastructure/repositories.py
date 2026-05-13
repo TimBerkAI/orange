@@ -26,10 +26,7 @@ class AppointmentRepository(AppointmentRepositoryInterface):
         if doctor_id:
             qs = qs.filter(visit__doctor_id=doctor_id)
         if search:
-            qs = qs.filter(
-                Q(patient_name__icontains=search)
-                | Q(phone__icontains=search)
-            )
+            qs = qs.filter(Q(patient_name__icontains=search) | Q(phone__icontains=search))
         return qs
 
     def create(self, *, visit, phone, patient_name, reason, created_by):

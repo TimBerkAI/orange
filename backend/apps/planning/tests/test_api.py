@@ -12,7 +12,10 @@ class TestAppointmentListCreate:
     url = reverse('planning:appointment-list-create')
 
     def test_admin_creates(
-        self, admin_client, teeth, doctor_with_user,
+        self,
+        admin_client,
+        teeth,
+        doctor_with_user,
     ):
         doctor, _ = doctor_with_user
         response = admin_client.post(
@@ -33,7 +36,9 @@ class TestAppointmentListCreate:
         assert response.data['doctor']['id'] == doctor.id
 
     def test_doctor_cannot_create(
-        self, doctor_with_user, teeth,
+        self,
+        doctor_with_user,
+        teeth,
     ):
         doctor, doctor_user = doctor_with_user
         client = make_authenticated_client(doctor_user)
@@ -107,7 +112,11 @@ class TestAppointmentListCreate:
         assert len(response.data) >= 1
 
     def test_overlap_returns_400(
-        self, admin_client, appointment, teeth, doctor_with_user,
+        self,
+        admin_client,
+        appointment,
+        teeth,
+        doctor_with_user,
     ):
         doctor, _ = doctor_with_user
         response = admin_client.post(

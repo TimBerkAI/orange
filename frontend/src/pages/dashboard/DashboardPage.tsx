@@ -254,7 +254,7 @@ export function DashboardPage() {
 
         {isAdminOrDoctor && (
           <StatCard
-            label="Ожидают подтверждения на завтра"
+            label="Ожидают подтверждения"
             value={stats?.tomorrow_pending ?? 0}
             color={colors.primary}
             loading={statsLoading}

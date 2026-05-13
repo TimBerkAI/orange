@@ -74,9 +74,9 @@ class UserSearchView(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
-        search = request.query_params.get("search", "").strip()
+        search = request.query_params.get('search', '').strip()
 
-        qs = User.objects.select_related("profile").order_by("email")
+        qs = User.objects.select_related('profile').order_by('email')
         if search and len(search) >= 2:
             qs = qs.filter(
                 Q(email__icontains=search)
@@ -92,14 +92,16 @@ class UserSearchView(APIView):
         page_size = min(int(request.query_params.get('page_size', 50)), 200)
         total = qs.count()
         start = (page - 1) * page_size
-        page_qs = qs[start:start + page_size]
+        page_qs = qs[start : start + page_size]
 
-        return Response({
-            'count': total,
-            'page': page,
-            'page_size': page_size,
-            'results': UserSerializer(page_qs, many=True).data,
-        })
+        return Response(
+            {
+                'count': total,
+                'page': page,
+                'page_size': page_size,
+                'results': UserSerializer(page_qs, many=True).data,
+            }
+        )
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -131,13 +133,13 @@ class UserDetailView(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request, user_id):
-        user = User.objects.select_related("profile").filter(pk=user_id).first()
+        user = User.objects.select_related('profile').filter(pk=user_id).first()
         if not user:
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(UserSerializer(user).data)
 
     def patch(self, request, user_id):
-        user = User.objects.select_related("profile").filter(pk=user_id).first()
+        user = User.objects.select_related('profile').filter(pk=user_id).first()
         if not user:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
@@ -170,9 +172,11 @@ class UserDetailView(APIView):
 
         user.save()
 
-        profile_fields = {k: v for k, v in data.items() if k in (
-            'first_name', 'last_name', 'patronymic', 'phone', 'date_of_birth'
-        )}
+        profile_fields = {
+            k: v
+            for k, v in data.items()
+            if k in ('first_name', 'last_name', 'patronymic', 'phone', 'date_of_birth')
+        }
         if profile_fields:
             UserProfile.objects.filter(user=user).update(**profile_fields)
 
