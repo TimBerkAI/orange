@@ -1,11 +1,12 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
+import { PhoneInput, isValidPhoneNumber } from "@/shared/ui/PhoneInput";
 import { Modal } from "@/shared/ui/Modal";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
 import { UserSearchInput } from "@/shared/ui/UserSearchInput";
 import { colors, radius, spacing, typography } from "@/shared/config/theme";
-import { parseApiError } from "@/shared/api/httpClient";
+import { parseApiFieldErrors } from "@/shared/api/httpClient";
 import { ALL_WEEKDAYS, WEEKDAY_LABELS } from "../weekdays";
 import type { Doctor, DoctorCreatePayload, NewUserPayload, Specialization } from "../types";
 
@@ -43,7 +44,7 @@ export function DoctorFormModal({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (open) {
@@ -57,7 +58,7 @@ export function DoctorFormModal({
       setNotes(doctor?.notes ?? "");
       setSelectedWeekdays(doctor?.preferred_weekdays ?? ALL_WEEKDAYS);
       setSelectedSpecs(doctor?.specializations.map((s) => s.id) ?? []);
-      setError("");
+      setFieldErrors({});
       setConfirmDelete(false);
     }
   }, [open, doctor]);
@@ -76,7 +77,11 @@ export function DoctorFormModal({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError("");
+    if (!isEdit && userMode === "new" && phone && !isValidPhoneNumber(phone)) {
+      setFieldErrors({ phone: "Введите корректный номер телефона" });
+      return;
+    }
+    setFieldErrors({});
     setSaving(true);
     try {
       const payload: DoctorCreatePayload = {
@@ -101,7 +106,7 @@ export function DoctorFormModal({
       await onSave(payload);
       onClose();
     } catch (err: unknown) {
-      setError(parseApiError(err, "Ошибка при сохранении"));
+      setFieldErrors(parseApiFieldErrors(err));
     } finally {
       setSaving(false);
     }
@@ -117,7 +122,7 @@ export function DoctorFormModal({
       await onDelete!();
       onClose();
     } catch {
-      setError("Ошибка при удалении");
+      setFieldErrors({ _general: "Ошибка при удалении" });
     } finally {
       setDeleting(false);
     }
@@ -188,27 +193,30 @@ export function DoctorFormModal({
                   label="Email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); setFieldErrors((p) => ({ ...p, email: "" })); }}
                   placeholder="doctor@clinic.ru"
                   required
+                  error={fieldErrors.email}
                 />
                 <div style={{ display: "flex", gap: spacing.sm }}>
                   <div style={{ flex: 1 }}>
                     <Input
                       label="Фамилия"
                       value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
+                      onChange={(e) => { setLastName(e.target.value); setFieldErrors((p) => ({ ...p, last_name: "" })); }}
                       placeholder="Иванов"
                       required
+                      error={fieldErrors.last_name}
                     />
                   </div>
                   <div style={{ flex: 1 }}>
                     <Input
                       label="Имя"
                       value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
+                      onChange={(e) => { setFirstName(e.target.value); setFieldErrors((p) => ({ ...p, first_name: "" })); }}
                       placeholder="Иван"
                       required
+                      error={fieldErrors.first_name}
                     />
                   </div>
                 </div>
@@ -222,11 +230,11 @@ export function DoctorFormModal({
                     />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <Input
+                    <PhoneInput
                       label="Телефон"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+7 (900) 123-45-67"
+                      onChange={(v) => { setPhone(v); setFieldErrors((p) => ({ ...p, phone: "" })); }}
+                      error={fieldErrors.phone}
                     />
                   </div>
                 </div>
@@ -349,7 +357,7 @@ export function DoctorFormModal({
           />
         </div>
 
-        {error && (
+        {fieldErrors._general && (
           <div
             style={{
               padding: `${spacing.sm} ${spacing.md}`,
@@ -359,7 +367,7 @@ export function DoctorFormModal({
               fontSize: typography.caption.fontSize,
             }}
           >
-            {error}
+            {fieldErrors._general}
           </div>
         )}
 

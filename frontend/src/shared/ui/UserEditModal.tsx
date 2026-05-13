@@ -2,9 +2,10 @@ import { type FormEvent, useEffect, useState } from "react";
 import { Modal } from "@/shared/ui/Modal";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
+import { PhoneInput, isValidPhoneNumber } from "@/shared/ui/PhoneInput";
 import { colors, radius, spacing, typography } from "@/shared/config/theme";
 import { updateUser } from "@/domains/authorization/infrastructure/authApi";
-import { parseApiError } from "@/shared/api/httpClient";
+import { parseApiFieldErrors } from "@/shared/api/httpClient";
 import type { User } from "@/shared/types";
 
 interface UserEditModalProps {
@@ -22,7 +23,7 @@ export function UserEditModal({ open, user, onClose, onSaved }: UserEditModalPro
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [email, setEmail] = useState("");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (open && user) {
@@ -32,15 +33,19 @@ export function UserEditModal({ open, user, onClose, onSaved }: UserEditModalPro
       setPhone(user.profile?.phone ?? "");
       setDateOfBirth(user.profile?.date_of_birth ?? "");
       setEmail(user.email);
-      setError("");
+      setFieldErrors({});
     }
   }, [open, user]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (phone && !isValidPhoneNumber(phone)) {
+      setFieldErrors({ phone: "Введите корректный номер телефона" });
+      return;
+    }
     setSaving(true);
-    setError("");
+    setFieldErrors({});
     try {
       const updated = await updateUser(user.id, {
         email,
@@ -52,7 +57,7 @@ export function UserEditModal({ open, user, onClose, onSaved }: UserEditModalPro
       });
       onSaved(updated);
     } catch (err: unknown) {
-      setError(parseApiError(err, "Ошибка при сохранении"));
+      setFieldErrors(parseApiFieldErrors(err));
     } finally {
       setSaving(false);
     }
@@ -70,16 +75,17 @@ export function UserEditModal({ open, user, onClose, onSaved }: UserEditModalPro
           label="Email"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => { setEmail(e.target.value); setFieldErrors((p) => ({ ...p, email: "" })); }}
           required
+          error={fieldErrors.email}
         />
 
         <div style={{ display: "flex", gap: spacing.sm }}>
           <div style={{ flex: 1 }}>
-            <Input label="Фамилия" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Иванов" />
+            <Input label="Фамилия" value={lastName} onChange={(e) => { setLastName(e.target.value); setFieldErrors((p) => ({ ...p, last_name: "" })); }} placeholder="Иванов" error={fieldErrors.last_name} />
           </div>
           <div style={{ flex: 1 }}>
-            <Input label="Имя" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Иван" />
+            <Input label="Имя" value={firstName} onChange={(e) => { setFirstName(e.target.value); setFieldErrors((p) => ({ ...p, first_name: "" })); }} placeholder="Иван" error={fieldErrors.first_name} />
           </div>
         </div>
 
@@ -88,7 +94,12 @@ export function UserEditModal({ open, user, onClose, onSaved }: UserEditModalPro
             <Input label="Отчество" value={patronymic} onChange={(e) => setPatronymic(e.target.value)} placeholder="Иванович" />
           </div>
           <div style={{ flex: 1 }}>
-            <Input label="Телефон" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+7 (900) 123-45-67" />
+            <PhoneInput
+              label="Телефон"
+              value={phone}
+              onChange={(v) => { setPhone(v); setFieldErrors((p) => ({ ...p, phone: "" })); }}
+              error={fieldErrors.phone}
+            />
           </div>
         </div>
 
@@ -99,7 +110,7 @@ export function UserEditModal({ open, user, onClose, onSaved }: UserEditModalPro
           onChange={(e) => setDateOfBirth(e.target.value)}
         />
 
-        {error && (
+        {fieldErrors._general && (
           <div
             style={{
               padding: `${spacing.sm} ${spacing.md}`,
@@ -109,7 +120,7 @@ export function UserEditModal({ open, user, onClose, onSaved }: UserEditModalPro
               fontSize: typography.caption.fontSize,
             }}
           >
-            {error}
+            {fieldErrors._general}
           </div>
         )}
 

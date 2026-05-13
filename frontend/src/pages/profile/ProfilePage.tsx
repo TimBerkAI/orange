@@ -4,8 +4,10 @@ import { updateProfile } from "@/domains/authorization/infrastructure/authApi";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { Input } from "@/shared/ui/Input";
+import { PhoneInput, isValidPhoneNumber } from "@/shared/ui/PhoneInput";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { colors, radius, spacing, typography } from "@/shared/config/theme";
+import { parseApiFieldErrors } from "@/shared/api/httpClient";
 
 export function ProfilePage() {
   const { user, refreshUser } = useAuth();
@@ -16,6 +18,7 @@ export function ProfilePage() {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (user?.profile) {
@@ -29,8 +32,13 @@ export function ProfilePage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (phone && !isValidPhoneNumber(phone)) {
+      setFieldErrors({ phone: "Введите корректный номер телефона" });
+      return;
+    }
     setSaving(true);
     setMessage("");
+    setFieldErrors({});
 
     try {
       await updateProfile({
@@ -42,8 +50,13 @@ export function ProfilePage() {
       });
       await refreshUser();
       setMessage("Профиль обновлен");
-    } catch {
-      setMessage("Ошибка при обновлении профиля");
+    } catch (err: unknown) {
+      const errors = parseApiFieldErrors(err);
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+      } else {
+        setMessage("Ошибка при обновлении профиля");
+      }
     } finally {
       setSaving(false);
     }
@@ -62,14 +75,16 @@ export function ProfilePage() {
             <Input
               label="Фамилия"
               value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
+              onChange={(e) => { setLastName(e.target.value); setFieldErrors((p) => ({ ...p, last_name: "" })); }}
               required
+              error={fieldErrors.last_name}
             />
             <Input
               label="Имя"
               value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
+              onChange={(e) => { setFirstName(e.target.value); setFieldErrors((p) => ({ ...p, first_name: "" })); }}
               required
+              error={fieldErrors.first_name}
             />
           </div>
 
@@ -80,11 +95,11 @@ export function ProfilePage() {
           />
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: spacing.md }}>
-            <Input
+            <PhoneInput
               label="Телефон"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+7 (999) 123-45-67"
+              onChange={(v) => { setPhone(v); setFieldErrors((p) => ({ ...p, phone: "" })); }}
+              error={fieldErrors.phone}
             />
             <Input
               label="Дата рождения"

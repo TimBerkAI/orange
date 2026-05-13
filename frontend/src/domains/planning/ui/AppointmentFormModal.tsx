@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
+import { PhoneInput, isValidPhoneNumber } from "@/shared/ui/PhoneInput";
 import { Modal } from "@/shared/ui/Modal";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
 import { colors, spacing, typography, radius } from "@/shared/config/theme";
 import { listDoctors } from "@/domains/doctors/api";
-import { parseApiError } from "@/shared/api/httpClient";
+import { parseApiFieldErrors } from "@/shared/api/httpClient";
 import type { Doctor } from "@/domains/doctors/types";
 import type { FormEvent } from "react";
 
@@ -54,7 +55,7 @@ export function AppointmentFormModal({
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("09:30");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (open) {
@@ -66,18 +67,22 @@ export function AppointmentFormModal({
       setStartDate(initialData?.start_date ?? new Date().toISOString().slice(0, 10));
       setStartTime(initialData?.start_time ?? "09:00");
       setEndTime(initialData?.end_time ?? "09:30");
-      setError("");
+      setFieldErrors({});
     }
   }, [open, initialData]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!doctorId) {
-      setError("Выберите врача");
+      setFieldErrors({ doctor_id: "Выберите врача" });
+      return;
+    }
+    if (phone && !isValidPhoneNumber(phone)) {
+      setFieldErrors({ phone: "Введите корректный номер телефона" });
       return;
     }
     setSaving(true);
-    setError("");
+    setFieldErrors({});
     try {
       const startIso = new Date(toLocalDatetime(startDate, startTime)).toISOString();
       const endIso = new Date(toLocalDatetime(startDate, endTime)).toISOString();
@@ -91,7 +96,7 @@ export function AppointmentFormModal({
       });
       onClose();
     } catch (err: unknown) {
-      setError(parseApiError(err, "Ошибка при сохранении"));
+      setFieldErrors(parseApiFieldErrors(err));
     } finally {
       setSaving(false);
     }
@@ -103,19 +108,20 @@ export function AppointmentFormModal({
         onSubmit={(e) => void handleSubmit(e)}
         style={{ display: "flex", flexDirection: "column", gap: spacing.md }}
       >
-        <Input
+        <PhoneInput
           label="Телефон"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="+7 (900) 123-45-67"
+          onChange={(v) => { setPhone(v); setFieldErrors((p) => ({ ...p, phone: "" })); }}
           required
+          error={fieldErrors.phone}
         />
         <Input
           label="ФИО пациента"
           value={patientName}
-          onChange={(e) => setPatientName(e.target.value)}
+          onChange={(e) => { setPatientName(e.target.value); setFieldErrors((p) => ({ ...p, patient_name: "" })); }}
           placeholder="Иванов Иван Иванович"
           required
+          error={fieldErrors.patient_name}
         />
         <div>
           <label
@@ -152,13 +158,13 @@ export function AppointmentFormModal({
           </label>
           <select
             value={doctorId}
-            onChange={(e) => setDoctorId(e.target.value ? Number(e.target.value) : "")}
+            onChange={(e) => { setDoctorId(e.target.value ? Number(e.target.value) : ""); setFieldErrors((p) => ({ ...p, doctor_id: "" })); }}
             required
             style={{
               width: "100%",
               padding: "8px 12px",
               borderRadius: radius.md,
-              border: `1px solid ${colors.border}`,
+              border: `1px solid ${fieldErrors.doctor_id ? colors.danger : colors.border}`,
               fontSize: typography.body.fontSize,
               color: colors.textPrimary,
               backgroundColor: colors.surface,
@@ -206,7 +212,7 @@ export function AppointmentFormModal({
           </div>
         </div>
 
-        {error && (
+        {(fieldErrors._general || fieldErrors.start_at || fieldErrors.end_at) && (
           <div
             style={{
               padding: `${spacing.sm} ${spacing.md}`,
@@ -216,7 +222,7 @@ export function AppointmentFormModal({
               fontSize: typography.caption.fontSize,
             }}
           >
-            {error}
+            {fieldErrors._general || fieldErrors.start_at || fieldErrors.end_at}
           </div>
         )}
 

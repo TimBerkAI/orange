@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
+import { PhoneInput, isValidPhoneNumber } from "@/shared/ui/PhoneInput";
 import { Modal } from "@/shared/ui/Modal";
 import { Spinner } from "@/shared/ui/Spinner";
 import { colors, radius, shadows, spacing, typography } from "@/shared/config/theme";
@@ -11,7 +12,7 @@ import {
   listUsers,
   updateUser,
 } from "@/domains/authorization/infrastructure/authApi";
-import { parseApiError } from "@/shared/api/httpClient";
+import { parseApiFieldErrors } from "@/shared/api/httpClient";
 import type { User } from "@/shared/types";
 import type { ReactNode } from "react";
 
@@ -320,7 +321,7 @@ function UserFormModal({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (open) {
@@ -333,15 +334,24 @@ function UserFormModal({
       setPatronymic(user?.profile?.patronymic ?? "");
       setPhone(user?.profile?.phone ?? "");
       setDateOfBirth(user?.profile?.date_of_birth ?? "");
-      setError("");
+      setFieldErrors({});
       setConfirmDelete(false);
     }
   }, [open, user]);
 
+  const validatePhone = (): boolean => {
+    if (phone && !isValidPhoneNumber(phone)) {
+      setFieldErrors((prev) => ({ ...prev, phone: "Введите корректный номер телефона" }));
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!validatePhone()) return;
     setSaving(true);
-    setError("");
+    setFieldErrors({});
     try {
       const payload = {
         email,
@@ -363,7 +373,7 @@ function UserFormModal({
       }
       onSaved(result);
     } catch (err: unknown) {
-      setError(parseApiError(err, "Ошибка при сохранении"));
+      setFieldErrors(parseApiFieldErrors(err));
     } finally {
       setSaving(false);
     }
@@ -376,7 +386,7 @@ function UserFormModal({
       await deleteUser(user!.id);
       onDeleted?.(user!.id);
     } catch (err: unknown) {
-      setError(parseApiError(err, "Ошибка при удалении"));
+      setFieldErrors(parseApiFieldErrors(err));
       setDeleting(false);
     }
   };
@@ -391,18 +401,20 @@ function UserFormModal({
           label="Email"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => { setEmail(e.target.value); setFieldErrors((p) => ({ ...p, email: "" })); }}
           placeholder="user@clinic.ru"
           required
+          error={fieldErrors.email}
         />
 
         <Input
           label={isEdit ? "Новый пароль (оставьте пустым без изменений)" : "Пароль"}
           type="password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => { setPassword(e.target.value); setFieldErrors((p) => ({ ...p, password: "" })); }}
           placeholder={isEdit ? "Не менять" : "Минимум 8 символов"}
           required={!isEdit}
+          error={fieldErrors.password}
         />
 
         <div style={{ display: "flex", gap: spacing.sm }}>
@@ -457,10 +469,10 @@ function UserFormModal({
 
         <div style={{ display: "flex", gap: spacing.sm }}>
           <div style={{ flex: 1 }}>
-            <Input label="Фамилия" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Иванов" />
+            <Input label="Фамилия" value={lastName} onChange={(e) => { setLastName(e.target.value); setFieldErrors((p) => ({ ...p, last_name: "" })); }} placeholder="Иванов" error={fieldErrors.last_name} />
           </div>
           <div style={{ flex: 1 }}>
-            <Input label="Имя" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Иван" />
+            <Input label="Имя" value={firstName} onChange={(e) => { setFirstName(e.target.value); setFieldErrors((p) => ({ ...p, first_name: "" })); }} placeholder="Иван" error={fieldErrors.first_name} />
           </div>
         </div>
 
@@ -469,7 +481,12 @@ function UserFormModal({
             <Input label="Отчество" value={patronymic} onChange={(e) => setPatronymic(e.target.value)} placeholder="Иванович" />
           </div>
           <div style={{ flex: 1 }}>
-            <Input label="Телефон" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+7 (900) 123-45-67" />
+            <PhoneInput
+              label="Телефон"
+              value={phone}
+              onChange={(v) => { setPhone(v); setFieldErrors((p) => ({ ...p, phone: "" })); }}
+              error={fieldErrors.phone}
+            />
           </div>
         </div>
 
@@ -480,7 +497,7 @@ function UserFormModal({
           onChange={(e) => setDateOfBirth(e.target.value)}
         />
 
-        {error && (
+        {fieldErrors._general && (
           <div
             style={{
               padding: `${spacing.sm} ${spacing.md}`,
@@ -490,7 +507,7 @@ function UserFormModal({
               fontSize: typography.caption.fontSize,
             }}
           >
-            {error}
+            {fieldErrors._general}
           </div>
         )}
 

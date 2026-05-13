@@ -17,6 +17,7 @@ export function UserIndicator() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [popupPos, setPopupPos] = useState<PopupPos | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (menuOpen && btnRef.current) {
@@ -32,7 +33,11 @@ export function UserIndicator() {
   useEffect(() => {
     if (!menuOpen) return;
     function handleClickOutside(e: MouseEvent) {
-      if (btnRef.current && !btnRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        btnRef.current && !btnRef.current.contains(target) &&
+        popupRef.current && !popupRef.current.contains(target)
+      ) {
         setMenuOpen(false);
       }
     }
@@ -106,6 +111,7 @@ export function UserIndicator() {
 
       {menuOpen && popupPos && (
         <div
+          ref={popupRef}
           style={{
             position: "fixed",
             bottom: popupPos.bottom,

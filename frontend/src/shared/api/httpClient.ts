@@ -1,4 +1,10 @@
 import { API_BASE_URL } from "@/shared/config/api";
+import {
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
+  setTokens,
+} from "@/domains/authorization/infrastructure/tokenStorage";
 
 /**
  * Extracts a human-readable Russian error message from a DRF error response.
@@ -10,12 +16,10 @@ export function parseApiError(err: unknown, fallback = "Произошла ош�
 
   if (typeof e.detail === "string") return e.detail;
 
-  // non_field_errors array
   if (Array.isArray(e.non_field_errors) && e.non_field_errors.length > 0) {
     return String(e.non_field_errors[0]);
   }
 
-  // Collect field-level errors
   const fieldMessages: string[] = [];
   for (const [key, val] of Object.entries(e)) {
     if (key === "status") continue;
@@ -29,12 +33,34 @@ export function parseApiError(err: unknown, fallback = "Произошла ош�
 
   return fallback;
 }
-import {
-  clearTokens,
-  getAccessToken,
-  getRefreshToken,
-  setTokens,
-} from "@/domains/authorization/infrastructure/tokenStorage";
+
+/**
+ * Returns a map of field name → first error message from a DRF validation error response.
+ * Also returns a `_general` key for non-field errors.
+ */
+export function parseApiFieldErrors(err: unknown): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (!err || typeof err !== "object") return result;
+  const e = err as Record<string, unknown>;
+
+  if (typeof e.detail === "string") {
+    result._general = e.detail;
+    return result;
+  }
+
+  for (const [key, val] of Object.entries(e)) {
+    if (key === "status") continue;
+    if (key === "non_field_errors" && Array.isArray(val) && val.length > 0) {
+      result._general = String(val[0]);
+    } else if (Array.isArray(val) && val.length > 0) {
+      result[key] = String(val[0]);
+    } else if (typeof val === "string") {
+      result[key] = val;
+    }
+  }
+
+  return result;
+}
 
 async function refreshAccessToken(): Promise<string | null> {
   const refresh = getRefreshToken();

@@ -7,10 +7,14 @@ import { Input } from "@/shared/ui/Input";
 import { Modal } from "@/shared/ui/Modal";
 import { Spinner } from "@/shared/ui/Spinner";
 import { UserSearchInput } from "@/shared/ui/UserSearchInput";
+import { UserEditModal } from "@/shared/ui/UserEditModal";
+import { PhoneInput, isValidPhoneNumber } from "@/shared/ui/PhoneInput";
 import { colors, radius, shadows, spacing, typography } from "@/shared/config/theme";
+import { parseApiFieldErrors } from "@/shared/api/httpClient";
 import { createPatient, deletePatient, listPatients, updatePatient } from "@/domains/patients/api";
 import { PATIENT_STATUS_LABELS } from "@/domains/patients/constants";
 import type { Patient } from "@/domains/patients/types";
+import type { User } from "@/shared/types";
 import type { FormEvent, ReactNode } from "react";
 
 function Th({ children }: { children?: ReactNode }) {
@@ -68,6 +72,7 @@ export function PatientsPage() {
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [editPatient, setEditPatient] = useState<Patient | null>(null);
+  const [editProfileUser, setEditProfileUser] = useState<User | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadPatients = useCallback((q?: string) => {
@@ -252,6 +257,52 @@ export function PatientsPage() {
               setPatients((prev) => prev.filter((p) => p.id !== id));
               setEditPatient(null);
             }}
+            onEditProfile={(patientUser) => {
+              setEditPatient(null);
+              setEditProfileUser({
+                id: patientUser.id,
+                email: patientUser.email,
+                role: "patient",
+                is_active: true,
+                date_joined: "",
+                profile: {
+                  first_name: patientUser.first_name,
+                  last_name: patientUser.last_name,
+                  patronymic: patientUser.patronymic,
+                  phone: patientUser.phone,
+                  date_of_birth: patientUser.date_of_birth,
+                },
+              });
+            }}
+          />
+          <UserEditModal
+            open={!!editProfileUser}
+            user={editProfileUser}
+            onClose={() => setEditProfileUser(null)}
+            onSaved={(updatedUser) => {
+              setPatients((prev) =>
+                prev.map((p) => {
+                  if (p.user.id !== updatedUser.id) return p;
+                  const profile = updatedUser.profile;
+                  return {
+                    ...p,
+                    user: {
+                      id: updatedUser.id,
+                      email: updatedUser.email,
+                      first_name: profile?.first_name ?? "",
+                      last_name: profile?.last_name ?? "",
+                      patronymic: profile?.patronymic ?? "",
+                      phone: profile?.phone ?? "",
+                      date_of_birth: profile?.date_of_birth ?? null,
+                    },
+                    full_name: profile
+                      ? `${profile.last_name} ${profile.first_name}`.trim()
+                      : p.full_name,
+                  };
+                })
+              );
+              setEditProfileUser(null);
+            }}
           />
         </>
       )}
@@ -278,7 +329,7 @@ function CreatePatientModal({
   const [phone, setPhone] = useState("");
   const [allergies, setAllergies] = useState("");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (open) {
@@ -290,19 +341,26 @@ function CreatePatientModal({
       setPatronymic("");
       setPhone("");
       setAllergies("");
-      setError("");
+      setFieldErrors({});
     }
   }, [open]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (userMode === "new" && phone && !isValidPhoneNumber(phone)) {
+      setFieldErrors({ phone: "Введите корректный номер телефона" });
+      return;
+    }
+    if (userMode === "existing" && !userId) {
+      setFieldErrors({ _general: "Выберите пользователя" });
+      return;
+    }
     setSaving(true);
-    setError("");
+    setFieldErrors({});
     try {
       const payload: Parameters<typeof createPatient>[0] = { allergies };
       if (userMode === "existing") {
-        if (!userId) { setError("Выберите пользователя"); setSaving(false); return; }
-        payload.user_id = userId;
+        payload.user_id = userId!;
       } else {
         payload.new_user = {
           email,
@@ -315,8 +373,7 @@ function CreatePatientModal({
       const patient = await createPatient(payload);
       onCreated(patient);
     } catch (err: unknown) {
-      const detail = (err as Record<string, unknown>)?.detail;
-      setError(typeof detail === "string" ? detail : "Ошибка при создании");
+      setFieldErrors(parseApiFieldErrors(err));
     } finally {
       setSaving(false);
     }
@@ -372,27 +429,30 @@ function CreatePatientModal({
                 label="Email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setFieldErrors((p) => ({ ...p, email: "" })); }}
                 placeholder="patient@email.ru"
                 required
+                error={fieldErrors.email}
               />
               <div style={{ display: "flex", gap: spacing.sm }}>
                 <div style={{ flex: 1 }}>
                   <Input
                     label="Фамилия"
                     value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
+                    onChange={(e) => { setLastName(e.target.value); setFieldErrors((p) => ({ ...p, last_name: "" })); }}
                     placeholder="Иванов"
                     required
+                    error={fieldErrors.last_name}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
                   <Input
                     label="Имя"
                     value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
+                    onChange={(e) => { setFirstName(e.target.value); setFieldErrors((p) => ({ ...p, first_name: "" })); }}
                     placeholder="Иван"
                     required
+                    error={fieldErrors.first_name}
                   />
                 </div>
               </div>
@@ -406,11 +466,11 @@ function CreatePatientModal({
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <Input
+                  <PhoneInput
                     label="Телефон"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+7 (900) 123-45-67"
+                    onChange={(v) => { setPhone(v); setFieldErrors((p) => ({ ...p, phone: "" })); }}
+                    error={fieldErrors.phone}
                   />
                 </div>
               </div>
@@ -423,7 +483,7 @@ function CreatePatientModal({
           onChange={(e) => setAllergies(e.target.value)}
           placeholder="Пенициллин, Лидокаин и т.д."
         />
-        {error && (
+        {fieldErrors._general && (
           <div
             style={{
               padding: `${spacing.sm} ${spacing.md}`,
@@ -433,7 +493,7 @@ function CreatePatientModal({
               fontSize: typography.caption.fontSize,
             }}
           >
-            {error}
+            {fieldErrors._general}
           </div>
         )}
         <div style={{ display: "flex", gap: spacing.sm, justifyContent: "flex-end" }}>
@@ -455,12 +515,14 @@ function EditPatientModal({
   onClose,
   onSaved,
   onDeleted,
+  onEditProfile,
 }: {
   open: boolean;
   patient: Patient | null;
   onClose: () => void;
   onSaved: (p: Patient) => void;
   onDeleted: (id: number) => void;
+  onEditProfile: (user: import("@/domains/patients/types").PatientUser) => void;
 }) {
   const [allergies, setAllergies] = useState("");
   const [status, setStatus] = useState<"active" | "archived">("active");
@@ -520,13 +582,35 @@ function EditPatientModal({
             padding: spacing.md,
             backgroundColor: colors.primaryLight,
             borderRadius: radius.md,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
           }}
         >
-          <div style={{ ...typography.caption, color: colors.textSecondary }}>Пациент</div>
-          <div style={{ ...typography.body, fontWeight: "500", color: colors.textPrimary }}>
-            {patient.full_name || patient.user.email}
+          <div>
+            <div style={{ ...typography.caption, color: colors.textSecondary }}>Пациент</div>
+            <div style={{ ...typography.body, fontWeight: "500", color: colors.textPrimary }}>
+              {patient.full_name || patient.user.email}
+            </div>
+            <div style={{ ...typography.caption, color: colors.textMuted }}>{patient.user.email}</div>
           </div>
-          <div style={{ ...typography.caption, color: colors.textMuted }}>{patient.user.email}</div>
+          <button
+            type="button"
+            onClick={() => onEditProfile(patient.user)}
+            style={{
+              background: "none",
+              border: `1px solid ${colors.border}`,
+              borderRadius: radius.sm,
+              padding: "4px 10px",
+              cursor: "pointer",
+              fontSize: typography.caption.fontSize,
+              color: colors.textSecondary,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
+          >
+            Профиль
+          </button>
         </div>
 
         <Input
