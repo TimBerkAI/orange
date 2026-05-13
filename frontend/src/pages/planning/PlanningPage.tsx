@@ -92,7 +92,7 @@ export function PlanningPage() {
       if (s) params.search = s;
 
       listAppointments(params as Parameters<typeof listAppointments>[0])
-        .then(setAppointments)
+        .then((data) => setAppointments(Array.isArray(data) ? data : []))
         .catch(() => null);
     },
     [weekStart, weekEnd, filterDoctorId],
@@ -108,8 +108,8 @@ export function PlanningPage() {
       listDoctors(),
     ])
       .then(([appts, docs]) => {
-        setAppointments(appts);
-        setDoctors(docs);
+        setAppointments(Array.isArray(appts) ? appts : []);
+        setDoctors(Array.isArray(docs) ? docs : []);
       })
       .finally(() => setLoading(false));
   }, [weekStart, weekEnd]);

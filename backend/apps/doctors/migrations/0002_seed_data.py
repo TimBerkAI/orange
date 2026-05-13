@@ -24,6 +24,7 @@ def seed_data(apps, schema_editor):
     Visit = apps.get_model('patients', 'Visit')
     Odontogram = apps.get_model('patients', 'Odontogram')
     SoapNote = apps.get_model('patients', 'SoapNote')
+    Appointment = apps.get_model('planning', 'Appointment')
 
     # ── specializations ──────────────────────────────────────────────────────
     spec_names = [
@@ -147,6 +148,20 @@ def seed_data(apps, schema_editor):
         )
         Odontogram.objects.create(visit=v)
         SoapNote.objects.create(visit=v, subjective='', objective='', assessment='', plan='')
+        profile = UserProfile.objects.filter(user=patient.user).first()
+        if profile:
+            name_parts = [profile.last_name, profile.first_name, profile.patronymic]
+            patient_name = ' '.join(p for p in name_parts if p) or patient.user.email
+            phone = profile.phone or ''
+        else:
+            patient_name = patient.user.email
+            phone = ''
+        Appointment.objects.create(
+            visit=v,
+            phone=phone,
+            patient_name=patient_name,
+            reason=reason,
+        )
         return v
 
     # ── patient 1 ─────────────────────────────────────────────────────────────
@@ -191,6 +206,7 @@ class Migration(migrations.Migration):
         ('doctors', '0001_initial'),
         ('patients', '0003_visit_start_at_end_at'),
         ('authorization', '0001_initial'),
+        ('planning', '0001_initial'),
     ]
 
     operations = [

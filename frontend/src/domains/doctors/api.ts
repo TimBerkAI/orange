@@ -59,7 +59,9 @@ export function updateDoctorMe(data: DoctorSelfUpdatePayload): Promise<Doctor> {
 }
 
 export function listSpecializations(): Promise<Specialization[]> {
-  return apiFetch("/doctors/specializations/");
+  return apiFetch<Specialization[] | { results: Specialization[] }>("/doctors/specializations/").then(
+    (r) => (Array.isArray(r) ? r : r.results ?? []),
+  );
 }
 
 export function createSpecialization(data: { name: string; description: string }): Promise<Specialization> {

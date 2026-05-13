@@ -171,7 +171,7 @@ export function DashboardPage() {
     if (!isAdminOrDoctor) return;
     setVisitLoading(true);
     getVisitStats(visitPeriod)
-      .then(setVisitData)
+      .then((data) => setVisitData(Array.isArray(data) ? data : []))
       .finally(() => setVisitLoading(false));
   }, [visitPeriod, isAdminOrDoctor]);
 
