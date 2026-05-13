@@ -11,6 +11,7 @@ import {
   listUsers,
   updateUser,
 } from "@/domains/authorization/infrastructure/authApi";
+import { parseApiError } from "@/shared/api/httpClient";
 import type { User } from "@/shared/types";
 import type { ReactNode } from "react";
 
@@ -362,8 +363,7 @@ function UserFormModal({
       }
       onSaved(result);
     } catch (err: unknown) {
-      const detail = (err as Record<string, unknown>)?.detail;
-      setError(typeof detail === "string" ? detail : "Ошибка при сохранении");
+      setError(parseApiError(err, "Ошибка при сохранении"));
     } finally {
       setSaving(false);
     }
@@ -376,8 +376,7 @@ function UserFormModal({
       await deleteUser(user!.id);
       onDeleted?.(user!.id);
     } catch (err: unknown) {
-      const detail = (err as Record<string, unknown>)?.detail;
-      setError(typeof detail === "string" ? detail : "Ошибка при удалении");
+      setError(parseApiError(err, "Ошибка при удалении"));
       setDeleting(false);
     }
   };

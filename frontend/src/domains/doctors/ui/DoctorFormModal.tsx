@@ -5,6 +5,7 @@ import { Modal } from "@/shared/ui/Modal";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
 import { UserSearchInput } from "@/shared/ui/UserSearchInput";
 import { colors, radius, spacing, typography } from "@/shared/config/theme";
+import { parseApiError } from "@/shared/api/httpClient";
 import { ALL_WEEKDAYS, WEEKDAY_LABELS } from "../weekdays";
 import type { Doctor, DoctorCreatePayload, NewUserPayload, Specialization } from "../types";
 
@@ -100,8 +101,7 @@ export function DoctorFormModal({
       await onSave(payload);
       onClose();
     } catch (err: unknown) {
-      const detail = (err as Record<string, unknown>)?.detail;
-      setError(typeof detail === "string" ? detail : "Ошибка при сохранении");
+      setError(parseApiError(err, "Ошибка при сохранении"));
     } finally {
       setSaving(false);
     }

@@ -11,6 +11,7 @@ import {
   listSpecializations,
   updateSpecialization,
 } from "@/domains/doctors/api";
+import { parseApiError } from "@/shared/api/httpClient";
 import type { Specialization } from "@/domains/doctors/types";
 
 function SpecializationModal({
@@ -50,15 +51,7 @@ function SpecializationModal({
         : await createSpecialization(payload);
       onSaved(result);
     } catch (err: unknown) {
-      const detail = (err as Record<string, unknown>)?.detail;
-      const nameErr = (err as Record<string, unknown>)?.name;
-      setError(
-        typeof detail === "string"
-          ? detail
-          : Array.isArray(nameErr)
-            ? String(nameErr[0])
-            : "Ошибка при сохранении",
-      );
+      setError(parseApiError(err, "Ошибка при сохранении"));
     } finally {
       setSaving(false);
     }

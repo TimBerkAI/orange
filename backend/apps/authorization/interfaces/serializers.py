@@ -3,6 +3,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from apps.authorization.domain.roles import Role
 from apps.authorization.infrastructure.models import User, UserProfile
+from shared.domain.validate import validate_phone
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -35,6 +36,14 @@ class RegisterSerializer(serializers.Serializer):
             raise serializers.ValidationError('User with this email already exists.')
         return value
 
+    def validate_phone(self, value):
+        if not value:
+            return value
+        try:
+            return validate_phone(value)
+        except ValueError as e:
+            raise serializers.ValidationError(str(e)) from e
+
 
 class UserAdminUpdateSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False)
@@ -46,6 +55,14 @@ class UserAdminUpdateSerializer(serializers.Serializer):
     patronymic = serializers.CharField(max_length=150, required=False, allow_blank=True)
     phone = serializers.CharField(max_length=30, required=False, allow_blank=True)
     date_of_birth = serializers.DateField(required=False, allow_null=True)
+
+    def validate_phone(self, value):
+        if not value:
+            return value
+        try:
+            return validate_phone(value)
+        except ValueError as e:
+            raise serializers.ValidationError(str(e)) from e
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):

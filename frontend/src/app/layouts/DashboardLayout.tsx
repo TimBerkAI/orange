@@ -308,7 +308,7 @@ export function DashboardLayout() {
       style={{
         display: "flex",
         minHeight: "100vh",
-        backgroundColor: colors.background,
+        backgroundColor: colors.surface,
       }}
     >
       {isMobile && mobileOpen && (

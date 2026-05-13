@@ -139,7 +139,7 @@ export function UserIndicator() {
           </button>
           <div style={{ height: 1, backgroundColor: colors.borderLight }} />
           <button
-            onClick={() => { setMenuOpen(false); logout(); }}
+            onClick={() => { setMenuOpen(false); logout(); void navigate("/login"); }}
             style={{
               display: "block",
               width: "100%",

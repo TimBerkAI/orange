@@ -72,25 +72,6 @@ DATABASES = {
     }
 }
 
-REDIS_URL = env('REDIS_URL', default='')
-
-if REDIS_URL:
-    CACHES = {
-        'default': {
-            'BACKEND': 'django_redis.cache.RedisCache',
-            'LOCATION': REDIS_URL,
-            'OPTIONS': {
-                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            },
-        }
-    }
-else:
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        }
-    }
-
 AUTH_USER_MODEL = 'authorization.User'
 
 AUTH_PASSWORD_VALIDATORS = [

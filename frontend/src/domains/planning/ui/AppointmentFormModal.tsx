@@ -5,6 +5,7 @@ import { Modal } from "@/shared/ui/Modal";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
 import { colors, spacing, typography, radius } from "@/shared/config/theme";
 import { listDoctors } from "@/domains/doctors/api";
+import { parseApiError } from "@/shared/api/httpClient";
 import type { Doctor } from "@/domains/doctors/types";
 import type { FormEvent } from "react";
 
@@ -90,8 +91,7 @@ export function AppointmentFormModal({
       });
       onClose();
     } catch (err: unknown) {
-      const detail = (err as Record<string, unknown>)?.detail;
-      setError(typeof detail === "string" ? detail : "Ошибка при сохранении");
+      setError(parseApiError(err, "Ошибка при сохранении"));
     } finally {
       setSaving(false);
     }

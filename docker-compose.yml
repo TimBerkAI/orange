@@ -25,13 +25,11 @@ services:
     environment:
       DEBUG: "False"
       DB_HOST: db
-      REDIS_URL: redis://redis:6379/0
       STATIC_ROOT: /var/www/static
     volumes:
       - static_files:/var/www/static
     depends_on:
       - db
-      - redis
     networks:
       - internal
 
@@ -49,19 +47,8 @@ services:
     networks:
       - internal
 
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - internal
-
 volumes:
   postgres_data:
-  redis_data:
   static_files:
 
 networks:

@@ -4,6 +4,7 @@ import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
 import { colors, radius, spacing, typography } from "@/shared/config/theme";
 import { updateUser } from "@/domains/authorization/infrastructure/authApi";
+import { parseApiError } from "@/shared/api/httpClient";
 import type { User } from "@/shared/types";
 
 interface UserEditModalProps {
@@ -51,8 +52,7 @@ export function UserEditModal({ open, user, onClose, onSaved }: UserEditModalPro
       });
       onSaved(updated);
     } catch (err: unknown) {
-      const detail = (err as Record<string, unknown>)?.detail;
-      setError(typeof detail === "string" ? detail : "Ошибка при сохранении");
+      setError(parseApiError(err, "Ошибка при сохранении"));
     } finally {
       setSaving(false);
     }

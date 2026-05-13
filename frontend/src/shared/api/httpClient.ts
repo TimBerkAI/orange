@@ -1,4 +1,34 @@
 import { API_BASE_URL } from "@/shared/config/api";
+
+/**
+ * Extracts a human-readable Russian error message from a DRF error response.
+ * Handles: { detail }, { non_field_errors }, { field: [msg] }, plain strings.
+ */
+export function parseApiError(err: unknown, fallback = "Произошла ошибка"): string {
+  if (!err || typeof err !== "object") return fallback;
+  const e = err as Record<string, unknown>;
+
+  if (typeof e.detail === "string") return e.detail;
+
+  // non_field_errors array
+  if (Array.isArray(e.non_field_errors) && e.non_field_errors.length > 0) {
+    return String(e.non_field_errors[0]);
+  }
+
+  // Collect field-level errors
+  const fieldMessages: string[] = [];
+  for (const [key, val] of Object.entries(e)) {
+    if (key === "status") continue;
+    if (Array.isArray(val) && val.length > 0) {
+      fieldMessages.push(`${key}: ${String(val[0])}`);
+    } else if (typeof val === "string") {
+      fieldMessages.push(val);
+    }
+  }
+  if (fieldMessages.length > 0) return fieldMessages.join("; ");
+
+  return fallback;
+}
 import {
   clearTokens,
   getAccessToken,
